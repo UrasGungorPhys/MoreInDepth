@@ -1,7 +1,10 @@
+from itertools import tee
+
 from manim import *
 import numpy as np
 import math
 import sympy as sp
+
 
 
 MistyBlue= ManimColor.from_hex("#404e7c")
@@ -12,7 +15,7 @@ VibrantPink= ManimColor.from_hex("#ED217C")
 VibrantPink2= ManimColor.from_hex("#BF1363")
 PastelGreen=ManimColor.from_hex("#00AF54")
 VibrantGreen= ManimColor.from_hex("#29BF12")
-LightBlue= ManimColor.from_hex("#85C7F2")
+LightBlue= ManimColor.from_hex("#74C0F3")
 RedOrange= ManimColor.from_hex("#BA1200")
 SkyBlue= ManimColor.from_hex("#01FDF6")
 OrangeOrange= ManimColor.from_hex("#FF5714")
@@ -22,7 +25,7 @@ Salmon= ManimColor.from_hex("#C73E1D")
 PastelRed= ManimColor.from_hex("#9E2B25")
 SteelBlue = ManimColor.from_hex("#3F88C5")
 Samoyed = ManimColor.from_hex("#E0E2DB")
-NeonOrange = ManimColor.from_hex("#FE5F00")
+NeonOrange = ManimColor.from_hex("#F9823C")
 DarkPurple = ManimColor.from_hex("#2f3061")
 Emerald = ManimColor.from_hex("#23CE6B")
 FakeRaspberry = ManimColor.from_hex("#F72585")
@@ -30,30 +33,38 @@ MateOrange = ManimColor.from_hex("#E4572E")
 
 BGBlue1 = ManimColor.from_hex("#0B1A27")
 BGBlue2 = ManimColor.from_hex("#091D2E")
+BGtry = ManimColor.from_hex("#141D29")
+Basetry = ManimColor.from_hex("#25282B")
 
 FunRed = ManimColor.from_hex("#EF271B")
 Greenough = ManimColor.from_hex("#53FF45")
+GreenoughDark = ManimColor.from_hex("#3AA631")
+GreenoughLight = ManimColor.from_hex("#75FA69")
 PlasticPink = ManimColor.from_hex("#ED217C")
 Vanilla = ManimColor.from_hex("#F5E2C8")
 SchoolBus = ManimColor.from_hex("#FDE12D")
 NewOrange1 = ManimColor.from_hex("#F34213")
 NewOrange2 = ManimColor.from_hex("#FE5F00")
 LemonOrange = ManimColor.from_hex("#F18F01")
+Vanilla2 = ManimColor.from_hex("#E8D0B7")
 
-gndcolor1 = Vanilla
+gndcolor1 = Vanilla2
 gndcolor2 = SteelBlue
 gndhighlight = LightBlue
 gndhighlight2 = Greenough
 
-pcolor1 = NewOrange1
-pcolor2 = NewOrange2
+pcolor1 = LightBlue
+pcolor2 = SteelBlue
 phighlight = LemonOrange
 phighlight2 = FakeRaspberry
 
 highlight = Emerald
 
-propercolor = Vanilla
-lightcolor = SchoolBus
+propercolor = Vanilla2
+lightcolor = LemonOrange
+
+
+
 
 def gli(line1, line2):
     p1, p2 = line1.get_start(), line1.get_end()
@@ -119,7 +130,7 @@ def gl_sxinterval(line, length):
     return([int_x, int_t, 0])
 
 
-def homemade_grid(axes, xrange, yrange, colorchoice, opacitychoice=0.3):
+def homemade_grid(axes, xrange, yrange, colorchoice, opacitychoice=0.25):
 
     xmin = xrange[0]
     xmax = xrange[1]
@@ -204,6 +215,64 @@ def line_function_intersection(line, func, ax):
                 intersections.append(np.array([xi, yi, 0.0]))
 
     return intersections
+
+
+def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.25):
+    pass
+
+
+def reverse_rate_func(func):
+    return lambda t: func(1 - t)
+
+
+def makeclock(time, scale):
+
+    clockscale = scale
+    clockimg = ImageMobject("clock.png").scale(clockscale)
+    clockbg = always_redraw(lambda: Circle(radius=3, fill_opacity=1).set_color(gndcolor1).move_to(clockimg.get_center()).scale(clockscale))
+    clockcenter = always_redraw(lambda:Dot(clockimg.get_center()).set_color(BLACK).scale(1.4).scale(clockscale))
+    clock12 = always_redraw(lambda:Dot(clockimg.get_top()).shift(DOWN*0.85*clockscale).set_opacity(0))
+    clocklinetip = Dot(clock12.get_center()).set_color(VibrantGreen).set_opacity(0)
+
+    n=time  # set to adjust to time
+    adjustarc = Arc(radius=2.9*clockscale, start_angle=PI/2-(n-1)*PI/6, 
+                            angle=-PI/6, arc_center=clockcenter.get_center())
+    clocklinetip.move_to(adjustarc.get_end())
+    clockline = always_redraw(lambda:Line(clockimg.get_center(), clocklinetip.get_center(), stroke_width=10*clockscale).set_color(BLACK))
+    clock=Group(clockbg, clockimg, clockline, clock12, clockcenter, clocklinetip)
+
+    return clock
+
+
+def primes(coords, v):
+            x = coords[0]
+            t = coords[1]
+
+            xp = (x + v*t)/np.sqrt(1-v**2)
+            tp = (t + v*x)/np.sqrt(1-v**2)
+
+            return [xp, tp]
+        
+
+def primeslt(coords, v):
+    x = coords[0]
+    t = coords[1]
+
+    xp = (x - v*t)/np.sqrt(1-v**2)
+    tp = (t - v*x)/np.sqrt(1-v**2)
+
+    return [xp, tp]
+
+
+def gndslt(pcoords, v):
+    xp = pcoords[0]
+    tp = pcoords[1]
+
+    x = (x + v*t)/np.sqrt(1-v**2)
+    t = (t + v*x)/np.sqrt(1-v**2)
+
+    return [x, t]
+
 
 
 class Intro(MovingCameraScene):
@@ -564,6 +633,8 @@ class Cameramen(MovingCameraScene):
                     self.play(mainanim, camframeanimation)
 
 
+
+# 95%
 class Hyperbolic(MovingCameraScene):
     def construct(self):
         # Plan for the scene, subchapters.
@@ -950,6 +1021,223 @@ class Hyperbolic(MovingCameraScene):
         # self.wait(2)
 
 
+
+class TprimeAxes(MovingCameraScene):
+    # Show why the t' axes are the tangent lines to the hyperbolic worldline of an accelerating observer.
+    # Demonstrate that an observer being in rest in their own frame leads to this.
+
+    def construct(self):
+        
+
+        # Inits
+        self.camera.background_color=BGtry
+
+        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0,0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        
+
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(1)
+        self.play(Transform(ogdot, ax.x_axis), self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.8), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Write(xlabel), Write(tlabel))
+
+        self.play(Create(grid1), run_time=1.2)
+        self.play(Create(lightray), run_time=1.2)
+
+        
+        self.wait(3)
+        
+        ################################ Scene 3 - Hyperbolic ################################
+        #################### Set up hyperbola, draw worldline ########################
+        hypx0 = 2
+        hypxf = 5.5
+        center=-2
+        def hyperbola(x, x0=hypx0, center=-2):
+            return np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def nhyperbola(x, x0=hypx0, center=-2):
+            return -np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=-2):
+            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=8).set_color(phighlight2)
+            return wlpiece
+        
+        def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
+            #t^2 = sqrt(x^2 - x0^2)
+            x1 = np.sqrt(t1**2 +x0**2)
+            x2 = np.sqrt(t2**2 +x0**2)
+
+            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+        
+        P = Dot(ax.c2p(center, 0, 0))
+        def getxprime(x, P_point=P, colorchoice=NeonOrange):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            xp = Arrow(hyp_point, hyp_point+xphat*3, buff=0).set_color(colorchoice)
+
+            return xp
+        
+        def gettprime(x, P_point=P, colorchoice=NeonOrange):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            tphat = np.array([xphat[1], xphat[0], 0])
+            tp = Arrow(hyp_point, hyp_point+tphat*3, buff=0).set_color(colorchoice)
+            acchere = Dot(hyp_point)
+
+            return tp
+
+        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=7).set_color(gndcolor2)
+
+        ########### Setup complete ################
+
+
+        self.play(Create(worldline), run_time=1.2, rate_func=rate_functions.ease_out_cubic)
+        acc1 = Dot(hyperbolapiece(0,0.2).get_end(), radius=0.12).set_color(NeonOrange)
+        self.play(Create(acc1))
+        acctp = always_redraw(lambda: gettprime(ax.p2c(acc1.get_center())[0]))
+        accxp = always_redraw(lambda: getxprime(ax.p2c(acc1.get_center())[0]))
+        vlabel = always_redraw(lambda: MathTex(f"v = {glslope(accxp):.2f} c").set_z_index(1).move_to(acc1.get_center()).shift(DOWN*0.5+RIGHT*0.5).set_color(NeonOrange))
+        vlabelbox = always_redraw(lambda: RoundedRectangle(corner_radius=0.2, width=vlabel.width+0.5, height=vlabel.height+0.2).set_stroke(MistyBlue).set_fill(MistyBlue, opacity=1).move_to(vlabel.get_center()))
+
+        self.play(Create(acctp), Create(accxp))
+        self.play(Write(vlabel), Create(vlabelbox)) # Add a little box around this to show it over the lines 
+
+        self.play(MoveAlongPath(acc1, hyperbolapiece(0.2, 4.5), rate_func=rate_functions.ease_in_sine, run_time=10))        
+
+
+
+class LikeCalculus(MovingCameraScene):
+    # Argue that this is the same idea as we use in basic calculus, where we need an infinite number of 
+    # tangent lines to fully describe a curve with a slope that changes at all points. Put together with the
+    # concept of locality, we can fully describe an accelerated worldline.
+
+    def construct(self):
+        self.camera.background_color=BGtry
+
+        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0,0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        self.camera.frame.scale(0.6)
+
+
+
+class AccLorentzAxes(MovingCameraScene):
+    def construct(self):
+        
+
+        # Inits
+        self.camera.background_color=BGtry
+
+        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0,0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        
+
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(1)
+        self.play(Transform(ogdot, ax.x_axis), self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.8), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Write(xlabel), Write(tlabel))
+
+        self.play(Create(grid1), run_time=1.2)
+        self.play(Create(lightray), run_time=1.2)
+
+        
+        self.wait(3)
+        
+        ################################ Scene 3 - Hyperbolic ################################
+        #################### Set up hyperbola, draw worldline ########################
+        hypx0 = 2
+        hypxf = 5.5
+        center=-2
+        def hyperbola(x, x0=hypx0, center=-2):
+            return np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def nhyperbola(x, x0=hypx0, center=-2):
+            return -np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=-2):
+            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=8).set_color(phighlight2)
+            return wlpiece
+        
+        def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
+            #t^2 = sqrt(x^2 - x0^2)
+            x1 = np.sqrt(t1**2 +x0**2)
+            x2 = np.sqrt(t2**2 +x0**2)
+
+            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+        
+        P = Dot(ax.c2p(center, 0, 0))
+        def getxprime(x, P_point=P, colorchoice=NeonOrange):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            xp = Arrow(hyp_point, hyp_point+xphat*3, buff=0).set_color(colorchoice)
+
+            return xp
+        
+        def gettprime(x, P_point=P, colorchoice=NeonOrange):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            tphat = np.array([xphat[1], xphat[0], 0])
+            tp = Arrow(hyp_point, hyp_point+tphat*3, buff=0).set_color(colorchoice)
+            acchere = Dot(hyp_point)
+
+            return tp
+
+        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=7).set_color(gndcolor2)
+
+        ########### Setup complete ################
+
+
+        self.play(Create(worldline), run_time=1.2, rate_func=rate_functions.ease_out_cubic)
+        acc1 = Dot(hyperbolapiece(0,0.2).get_end(), radius=0.12).set_color(NeonOrange)
+        self.play(Create(acc1))
+        acctp = always_redraw(lambda: gettprime(ax.p2c(acc1.get_center())[0]))
+        accxp = always_redraw(lambda: getxprime(ax.p2c(acc1.get_center())[0]))
+        vlabel = always_redraw(lambda: MathTex(f"v = {glslope(accxp):.2f} c").set_z_index(1).move_to(acc1.get_center()).shift(DOWN*0.5+RIGHT*0.5).set_color(NeonOrange))
+        vlabelbox = always_redraw(lambda: RoundedRectangle(corner_radius=0.2, width=vlabel.width+0.5, height=vlabel.height+0.2).set_stroke(MistyBlue).set_fill(MistyBlue, opacity=1).move_to(vlabel.get_center()))
+
+        self.play(Create(acctp), Create(accxp))
+        self.play(Write(vlabel), Create(vlabelbox)) # Add a little box around this to show it over the lines 
+
+        self.play(MoveAlongPath(acc1, hyperbolapiece(0.2, 4.5), rate_func=rate_functions.ease_in_sine, run_time=10))        
+
+
+
 # 85%
 # I guess only aesthetics left here
 class CameramenLorentzAxes(MovingCameraScene):
@@ -1236,6 +1524,7 @@ class CameramenLorentzAxes2(MovingCameraScene):
         self.wait(5)
 
 
+
 class Horizon(MovingCameraScene):
     def construct(self):
     # Chapters:
@@ -1318,6 +1607,7 @@ class Horizon(MovingCameraScene):
         ############# Chapter 5:
 
 
+
 class Geodesics(ThreeDScene):
     """Particles tracing same-radius free-fall paths around a massive body."""
 
@@ -1370,8 +1660,8 @@ class Geodesics(ThreeDScene):
     def make_faint_shell(self):
         shell = Sphere(radius=self.orbit_radius, resolution=(36, 18))
         shell.move_to(self.body_center)
-        shell.set_fill("#1f3448", opacity=0.025)
-        shell.set_stroke("#3f536a", width=0.25, opacity=0.045)
+        shell.set_fill("#1f3448", opacity=0)
+        shell.set_stroke("#3f536a", width=0.25, opacity=0)
         return shell
 
     def play_random_shell_reveal(self):
