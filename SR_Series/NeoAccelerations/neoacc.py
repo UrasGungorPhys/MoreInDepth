@@ -277,7 +277,72 @@ def gndslt(pcoords, v):
 
 class Intro(MovingCameraScene):
     def construct(self):
-        pass
+
+        # Inits
+        self.camera.background_color=BGtry
+
+        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0,0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        
+
+
+        ################################ Scene 1 - First diagram ################################
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(1)
+        self.play(Transform(ogdot, ax.x_axis), self.camera.frame.animate.scale(1.1/0.6).shift(RIGHT*4), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Create(ax.y_axis, rate_func=rate_functions.ease_out_back), self.camera.frame.animate(rate_func=rate_functions.ease_out_back).shift(UP*3.7), run_time=1.1)
+
+        self.play(Create(grid1), Create(lightray), run_time=1.2)
+
+
+        # Create labels?
+
+        ################################ Scene 2 - Lorentz contract ################################
+        # Let's add another pair of axes, make them blue. Add a blue label with v = 0.0 c as an updater. 
+        # change the velocity and contract the axes accordingly to showcase Lorentz contraction
+        v = ValueTracker(0.00)
+        self.add(v)
+        vlabel = always_redraw(lambda: MathTex("v ", f"= {v.get_value():.2f} c").set_color(pcolor1).move_to(lightray.get_end()).shift(LEFT*2).scale(1.4))
+        tpax0 = Arrow(og,ax.c2p(0,6.2))
+        xpax0 = Arrow(og,ax.c2p(6.2, 0))
+        L0 = tpax0.get_length()
+        # t^2 - x^2 = L0^2  means if x = v, t = sqrt(L0^2 + v^2)
+        # tpax = Arrow(og, ax.c2p((0.3*L0), np.sqrt(L0**2 + (0.3*L0)**2)), buff=0).set_color(LightBlue)
+
+        tpax = always_redraw(lambda: Arrow(og, ax.c2p(v.get_value()*L0, np.sqrt(L0**2 + (v.get_value()*L0)**2)), buff=0).set_color(pcolor1))
+        xpax = always_redraw(lambda: Arrow(og, ax.c2p(np.sqrt(L0**2 + (v.get_value()*L0)**2), v.get_value()*L0), buff=0).set_color(pcolor1))
+        xlabel = Tex("Space").move_to(ax.x_axis.get_end()).shift(UP*0.8).set_color(gndcolor1)
+        tlabel = Tex("Time").move_to(ax.y_axis.get_end()).shift(RIGHT).set_color(gndcolor1)
+        self.play(Write(xlabel),Write(tlabel))
+        self.wait(2)
+        xlabelp = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabelp = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        self.play(Transform(xlabel, xlabelp), Transform(tlabel, tlabelp))
+        
+        self.play(Create(tpax), Create(xpax), rate_func=rate_functions.ease_out_cubic)
+        xplabel = always_redraw(lambda:MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(SteelBlue))
+        tplabel = always_redraw(lambda:MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4 + DOWN*0.07).set_color(SteelBlue))
+        self.play(Write(xplabel), Write(tplabel))
+        self.wait()
+        self.play(Write(vlabel), run_time=1.2)
+        
+        self.wait()
+
+        # self.play(v.animate.set_value(0.2), run_time=1)
+        self.wait()
+        self.play(v.animate.set_value(0.5), run_time=1.5)
+        self.wait()
+        # self.play(v.animate.set_value(0.3), run_time=0.6)
+        self.wait()
+        # self.play(v.animate.set_value(0.6), run_time=1.5)
+        self.wait(5)
 
 
 # 97.5%
@@ -634,7 +699,9 @@ class Cameramen(MovingCameraScene):
 
 
 
-# 95%
+# Fix camera angles
+# Fix transitions
+# Fix grid
 class Hyperbolic(MovingCameraScene):
     def construct(self):
         # Plan for the scene, subchapters.
@@ -649,7 +716,7 @@ class Hyperbolic(MovingCameraScene):
 
         ############################################### Initializing ########################################################
         #################### Set up axes
-        self.camera.background_color = BGBlue1
+        self.camera.background_color = BGtry
         self.camera.frame.scale(0.9).shift(RIGHT)
         ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
         x_length=7, y_length=7,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
@@ -1022,7 +1089,7 @@ class Hyperbolic(MovingCameraScene):
 
 
 
-class TprimeAxes(MovingCameraScene):
+class TprimeAxes0(MovingCameraScene):
     # Show why the t' axes are the tangent lines to the hyperbolic worldline of an accelerating observer.
     # Demonstrate that an observer being in rest in their own frame leads to this.
 
@@ -1121,24 +1188,528 @@ class TprimeAxes(MovingCameraScene):
 
 
 
+class TprimeAxes(MovingCameraScene):
+    # Show why the t' axes are the tangent lines to the hyperbolic worldline of an accelerating observer.
+    # Demonstrate that an observer being in rest in their own frame leads to this.
+
+    def construct(self):
+        self.camera.background_color = BGtry
+
+        ax = Axes(
+            x_range=[0, 7, 1],
+            y_range=[0, 7, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0, 0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0, 7], [0, 7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8, 6.8)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(1)
+        self.play(
+            Transform(ogdot, ax.x_axis),
+            self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(
+            Create(ax.y_axis),
+            self.camera.frame.animate.shift(UP*3.8),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(Write(xlabel), Write(tlabel))
+        self.play(Create(grid1), run_time=1.2)
+        self.play(Create(lightray), run_time=1.2)
+
+        def line_or_empty(start, end, color, stroke_width=4, opacity=1, dashed=False):
+            if np.linalg.norm(end-start) < 0.01:
+                return VGroup()
+            line = DashedLine(start, end, dash_length=0.08) if dashed else Line(start, end)
+            line.set_color(color).set_stroke(width=stroke_width, opacity=opacity)
+            return line
+
+        def unit_vector(vector):
+            norm = np.linalg.norm(vector)
+            if norm == 0:
+                return vector
+            return vector/norm
+
+        ################################ Ground frame rest ################################
+        ground_tau = 3.25
+        ground_tilt = ValueTracker(0)
+
+        def ground_tip():
+            return ax.c2p(ground_tilt.get_value()*ground_tau, ground_tau)
+
+        def ground_xfoot():
+            return ax.c2p(ground_tilt.get_value()*ground_tau, 0)
+
+        def ground_tfoot():
+            return ax.c2p(0, ground_tau)
+
+        ground_arrow = always_redraw(
+            lambda: Arrow(
+                og,
+                ground_tip(),
+                buff=0,
+                stroke_width=7,
+                max_tip_length_to_length_ratio=0.08,
+            ).set_color(gndhighlight).set_z_index(3)
+        )
+        ground_x_projector = always_redraw(
+            lambda: line_or_empty(ground_tip(), ground_xfoot(), gndhighlight, 3, 0.75, dashed=True)
+        )
+        ground_t_projector = always_redraw(
+            lambda: line_or_empty(ground_tip(), ground_tfoot(), gndhighlight, 3, 0.75, dashed=True)
+        )
+        ground_delta_t = always_redraw(
+            lambda: line_or_empty(og, ground_tfoot(), gndhighlight, 6, 1)
+        )
+        ground_delta_x = always_redraw(
+            lambda: line_or_empty(og, ground_xfoot(), gndhighlight, 6, min(1, ground_tilt.get_value()*6))
+        )
+        ground_dt_label = always_redraw(
+            lambda: MathTex(r"\Delta t").set_color(gndhighlight).scale(0.75)
+            .move_to((og+ground_tfoot())/2).shift(LEFT*0.45)
+        )
+        ground_dx_label = always_redraw(
+            lambda: MathTex(r"\Delta x").set_color(gndhighlight).scale(0.75)
+            .move_to((og+ground_xfoot())/2).shift(DOWN*0.35)
+            .set_opacity(min(1, ground_tilt.get_value()*6))
+        )
+
+        self.wait(0.8)
+        self.play(Create(ground_arrow), run_time=0.8)
+        self.wait(0.6)
+        self.play(ground_tilt.animate.set_value(0.27), run_time=1.1, rate_func=smooth)
+        self.play(
+            Create(ground_x_projector),
+            Create(ground_t_projector),
+            Create(ground_delta_t),
+            Create(ground_delta_x),
+            Write(ground_dt_label),
+            Write(ground_dx_label),
+            run_time=1,
+        )
+        self.wait(0.8)
+        self.play(ground_tilt.animate.set_value(0), run_time=1.8, rate_func=smooth)
+        ground_v_label = MathTex(r"\vec v").set_color(gndhighlight).scale(0.9)
+        ground_v_label.next_to(ground_arrow.get_end(), RIGHT, buff=0.15)
+        self.play(Write(ground_v_label), run_time=0.7)
+        self.wait(0.8)
+        self.play(
+            FadeOut(
+                ground_x_projector,
+                ground_t_projector,
+                ground_delta_t,
+                ground_delta_x,
+                ground_dt_label,
+                ground_dx_label,
+                ground_arrow,
+                ground_v_label,
+            ),
+            run_time=0.8,
+        )
+
+        ################################ Primed inertial frame rest ################################
+        prime_v = ValueTracker(0.33)
+        prime_axis_length = 3.75
+
+        def prime_t_end():
+            speed = prime_v.get_value()
+            return ax.c2p(speed*prime_axis_length, np.sqrt(prime_axis_length**2+(speed*prime_axis_length)**2))
+
+        def prime_x_end():
+            speed = prime_v.get_value()
+            return ax.c2p(np.sqrt(prime_axis_length**2+(speed*prime_axis_length)**2), speed*prime_axis_length)
+
+        def tphat():
+            return unit_vector(prime_t_end()-og)
+
+        def xphat():
+            return unit_vector(prime_x_end()-og)
+
+        tpax = always_redraw(lambda: Arrow(og, prime_t_end(), buff=0).set_color(pcolor1))
+        xpax = always_redraw(lambda: Arrow(og, prime_x_end(), buff=0).set_color(pcolor1))
+        xplabel = always_redraw(
+            lambda: MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(SteelBlue)
+        )
+        tplabel = always_redraw(
+            lambda: MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4+DOWN*0.07).set_color(SteelBlue)
+        )
+
+        self.play(Create(tpax), Create(xpax), run_time=0.9, rate_func=rate_functions.ease_out_cubic)
+        self.play(Write(xplabel), Write(tplabel), run_time=0.6)
+
+        prime_alpha = ValueTracker(0)
+        prime_tilt = ValueTracker(0)
+        prime_motion_length = 2.55
+
+        def prime_event_point(alpha=None):
+            if alpha is None:
+                alpha = prime_alpha.get_value()
+            return og+prime_motion_length*alpha*(tphat()+prime_tilt.get_value()*xphat())
+
+        prime_dot = always_redraw(
+            lambda: Dot(prime_event_point(), radius=0.095).set_color(NeonOrange).set_z_index(5)
+        )
+        prime_rest_label = always_redraw(
+            lambda: MathTex(r"\Delta x'=0").set_color(gndhighlight).scale(0.75)
+            .next_to(prime_dot, RIGHT, buff=0.15)
+        )
+
+        self.play(Create(prime_dot), Write(prime_rest_label), run_time=0.7)
+        self.play(prime_alpha.animate.set_value(0.86), run_time=1.8, rate_func=linear)
+        self.wait(0.6)
+        self.play(prime_alpha.animate.set_value(0), FadeOut(prime_rest_label), run_time=0.7)
+
+        prime_tilt.set_value(0.27)
+        prime_motion_arrow = always_redraw(
+            lambda: Arrow(
+                og,
+                prime_event_point(alpha=1),
+                buff=0,
+                stroke_width=7,
+                max_tip_length_to_length_ratio=0.08,
+            ).set_color(gndhighlight).set_z_index(3)
+        )
+
+        def prime_projection_point():
+            return prime_event_point()
+
+        def prime_foot_on_x():
+            point = prime_projection_point()
+            axis_line = Line(og-xphat()*9, og+xphat()*9).set_opacity(0)
+            projector = Line(point-tphat()*9, point+tphat()*9).set_opacity(0)
+            intersection = gli(axis_line, projector)
+            return og if intersection is None else intersection
+
+        def prime_foot_on_t():
+            point = prime_projection_point()
+            axis_line = Line(og-tphat()*9, og+tphat()*9).set_opacity(0)
+            projector = Line(point-xphat()*9, point+xphat()*9).set_opacity(0)
+            intersection = gli(axis_line, projector)
+            return og if intersection is None else intersection
+
+        def prime_dx_opacity():
+            return min(1, prime_alpha.get_value()*prime_tilt.get_value()*7)
+
+        prime_x_projector = always_redraw(
+            lambda: line_or_empty(prime_projection_point(), prime_foot_on_x(), gndhighlight, 3, 0.75, dashed=True)
+        )
+        prime_t_projector = always_redraw(
+            lambda: line_or_empty(prime_projection_point(), prime_foot_on_t(), gndhighlight, 3, 0.75, dashed=True)
+        )
+        prime_delta_x = always_redraw(
+            lambda: line_or_empty(og, prime_foot_on_x(), gndhighlight, 6, prime_dx_opacity())
+        )
+        prime_delta_t = always_redraw(
+            lambda: line_or_empty(og, prime_foot_on_t(), gndhighlight, 6, min(1, prime_alpha.get_value()*4))
+        )
+        prime_dx_label = always_redraw(
+            lambda: MathTex(r"\Delta x'").set_color(gndhighlight).scale(0.7)
+            .move_to((og+prime_foot_on_x())/2-tphat()*0.35)
+            .set_opacity(prime_dx_opacity())
+        )
+        prime_dt_label = always_redraw(
+            lambda: MathTex(r"\Delta t'").set_color(gndhighlight).scale(0.7)
+            .move_to((og+prime_foot_on_t())/2-xphat()*0.35)
+            .set_opacity(min(1, prime_alpha.get_value()*4))
+        )
+
+        self.play(Create(prime_motion_arrow), run_time=0.6)
+        self.play(prime_alpha.animate.set_value(0.14), run_time=0.25, rate_func=linear)
+        self.play(
+            Create(prime_x_projector),
+            Create(prime_t_projector),
+            Create(prime_delta_x),
+            Create(prime_delta_t),
+            Write(prime_dx_label),
+            Write(prime_dt_label),
+            run_time=0.8,
+        )
+        self.play(prime_alpha.animate.set_value(1), run_time=1.8, rate_func=linear)
+        self.wait(0.6)
+        self.play(prime_tilt.animate.set_value(0), run_time=1.8, rate_func=smooth)
+        prime_v_label = MathTex(r"\vec v").set_color(gndhighlight).scale(0.9)
+        prime_v_label.next_to(prime_motion_arrow.get_end(), RIGHT, buff=0.15)
+        self.play(Write(prime_v_label), run_time=0.7)
+        self.wait(0.8)
+        self.play(
+            FadeOut(
+                prime_x_projector,
+                prime_t_projector,
+                prime_delta_x,
+                prime_delta_t,
+                prime_dx_label,
+                prime_dt_label,
+                prime_motion_arrow,
+                prime_dot,
+                prime_v_label,
+                tpax,
+                xpax,
+                tplabel,
+                xplabel,
+            ),
+            run_time=0.9,
+        )
+
+        ################################ Accelerated observer ################################
+        hypx0 = 2
+        hypxf = 5.5
+        center = -2
+
+        def hyperbola(x, x0=hypx0, center=center):
+            return np.sqrt((x-center)**2-x0**2)
+
+        def hyperbolapiece(x1, x2, opacity=1):
+            return ax.plot(
+                lambda x: hyperbola(x),
+                x_range=[x1, x2, 0.01],
+                use_smoothing=False,
+                stroke_width=8,
+            ).set_opacity(opacity).set_color(phighlight2)
+
+        P = ax.c2p(center, 0, 0)
+
+        def getxprime(x, P_point=P, colorchoice=pcolor1):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xprime_hat = intline.get_unit_vector()
+            return Arrow(hyp_point, hyp_point+xprime_hat*2.75, buff=0, stroke_width=5).set_color(colorchoice)
+
+        def gettprime(x, P_point=P, colorchoice=pcolor1):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xprime_hat = intline.get_unit_vector()
+            tprime_hat = np.array([xprime_hat[1], xprime_hat[0], 0])
+            return Arrow(hyp_point, hyp_point+tprime_hat*2.75, buff=0, stroke_width=5).set_color(colorchoice)
+
+        worldline = ax.plot(
+            lambda x: hyperbola(x),
+            x_range=[hypx0+center, hypxf, 0.01],
+            stroke_width=7,
+        ).set_color(gndcolor2)
+
+        self.play(Create(worldline), run_time=1.2, rate_func=rate_functions.ease_out_cubic)
+        acc1 = Dot(worldline.get_start(), radius=0.12).set_color(NeonOrange).set_z_index(5)
+        self.play(Create(acc1))
+
+        def acc_x_value():
+            return np.clip(ax.p2c(acc1.get_center())[0], hypx0+center+0.001, hypxf)
+
+        acctp = always_redraw(lambda: gettprime(acc_x_value()))
+        accxp = always_redraw(lambda: getxprime(acc_x_value()))
+        acctplabel = always_redraw(
+            lambda: MathTex("t'").set_color(SkyBlue).scale(0.7).next_to(acctp.get_end(), UR, buff=0.07)
+        )
+        accxplabel = always_redraw(
+            lambda: MathTex("x'").set_color(SkyBlue).scale(0.7).next_to(accxp.get_end(), UR, buff=0.07)
+        )
+        accvlabel = always_redraw(
+            lambda: MathTex(r"\vec v").set_color(NeonOrange).scale(0.8).next_to(acctp.get_end(), UR, buff=0.07)
+        )
+
+        self.play(Create(acctp), Create(accxp), Write(acctplabel), Write(accxplabel), run_time=0.9)
+        self.play(MoveAlongPath(acc1, hyperbolapiece(0, 1.6)), run_time=3, rate_func=linear)
+        self.play(FadeOut(accxp), FadeOut(accxplabel), FadeOut(acctplabel), FadeIn(accvlabel), run_time=0.8)
+        self.play(MoveAlongPath(acc1, hyperbolapiece(1.6, 4.5)), run_time=5, rate_func=rate_functions.ease_in_sine)
+        self.wait(2)
+
+
+
 class LikeCalculus(MovingCameraScene):
     # Argue that this is the same idea as we use in basic calculus, where we need an infinite number of 
     # tangent lines to fully describe a curve with a slope that changes at all points. Put together with the
     # concept of locality, we can fully describe an accelerated worldline.
 
     def construct(self):
-        self.camera.background_color=BGtry
+        self.camera.background_color = BGtry
 
-        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
-        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        ax = Axes(
+            x_range=[0, 7, 1],
+            y_range=[0, 7, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
         self.camera.frame.scale(1.2)
-        ax.shift(ORIGIN-ax.c2p(0,0))
+        ax.shift(ORIGIN-ax.c2p(0, 0))
         og = ORIGIN
-        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
-        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        grid1 = homemade_grid(ax, [0, 7], [0, 7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8, 6.8)).set_color(lightcolor)
         xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
         tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
         self.camera.frame.scale(0.6)
+
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(0.5)
+        self.play(
+            Transform(ogdot, ax.x_axis),
+            self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(
+            Create(ax.y_axis),
+            self.camera.frame.animate.shift(UP*3.8),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(Write(xlabel), Write(tlabel))
+        self.play(Create(grid1), Create(lightray), run_time=1.2)
+
+        plateau_slope = 1.5
+        left_span = 0.7
+        right_span = 0.7
+        root = np.sqrt(plateau_slope**2-1)
+        hyp_radius = left_span/(plateau_slope/root-1)
+        join_height = hyp_radius/root
+        join_offset = hyp_radius*plateau_slope/root
+
+        def left_hyperbola(x):
+            return np.sqrt(np.maximum((x+hyp_radius)**2-hyp_radius**2, 0))
+
+        def curve_data(plateau_span):
+            x1 = left_span
+            y1 = join_height
+            x2 = x1+plateau_span
+            y2 = y1+plateau_slope*plateau_span
+            right_center = x2-join_offset
+            right_shift = y2-join_height
+            return x1, y1, x2, y2, right_center, right_shift
+
+        def right_hyperbola(x, plateau_span):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            return np.sqrt(np.maximum((x-right_center)**2-hyp_radius**2, 0))+right_shift
+
+        def plateau_point(plateau_span, alpha):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            x = x1+alpha*plateau_span
+            return ax.c2p(x, y1+plateau_slope*(x-x1))
+
+        def make_worldline(plateau_span):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            left_xs = np.linspace(0, x1, 45)
+            plateau_xs = np.linspace(x1, x2, 90)
+            right_xs = np.linspace(x2, x2+right_span, 45)
+            points = []
+
+            for x in left_xs:
+                points.append(ax.c2p(x, left_hyperbola(x)))
+            for x in plateau_xs:
+                points.append(ax.c2p(x, y1+plateau_slope*(x-x1)))
+            for x in right_xs:
+                points.append(ax.c2p(x, right_hyperbola(x, plateau_span)))
+
+            curve = VMobject()
+            curve.set_points_smoothly(points)
+            curve.set_stroke(gndcolor2, width=7)
+            return curve
+
+        def unit_scene_vector(dx, dt):
+            vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
+            return vector/np.linalg.norm(vector)
+
+        tprime_hat = unit_scene_vector(1, plateau_slope)
+        xprime_hat = unit_scene_vector(1, 1/plateau_slope)
+        local_axis_length = 1.75
+
+        def focus_on_plateau(plateau_span, zoom=0.72):
+            midpoint = plateau_point(plateau_span, 0.5)
+            return self.camera.frame.animate.scale(zoom).move_to(midpoint).shift(UP*0.35+RIGHT*0.1)
+
+        def run_local_frame(plateau_span, start=0.12, end=0.88, run_time=4):
+            alpha = ValueTracker(start)
+
+            local_origin = always_redraw(
+                lambda: Dot(plateau_point(plateau_span, alpha.get_value()), radius=0.075)
+                .set_color(NeonOrange)
+                .set_z_index(5)
+            )
+            tp = always_redraw(
+                lambda: Arrow(
+                    plateau_point(plateau_span, alpha.get_value()),
+                    plateau_point(plateau_span, alpha.get_value())+tprime_hat*local_axis_length,
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.12,
+                ).set_color(pcolor1)
+            )
+            xp = always_redraw(
+                lambda: Arrow(
+                    plateau_point(plateau_span, alpha.get_value()),
+                    plateau_point(plateau_span, alpha.get_value())+xprime_hat*local_axis_length,
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.12,
+                ).set_color(pcolor1)
+            )
+            moving_grid = always_redraw(
+                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.35, length_ratio=0.82)
+            )
+            tplabel = always_redraw(
+                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UR, buff=0.05)
+            )
+            xplabel = always_redraw(
+                lambda: MathTex("x'").set_color(SkyBlue).scale(0.55).next_to(xp.get_end(), UR, buff=0.05)
+            )
+
+            self.play(
+                Create(tp),
+                Create(xp),
+                FadeIn(moving_grid),
+                Create(local_origin),
+                Write(tplabel),
+                Write(xplabel),
+                run_time=0.9,
+            )
+            self.play(alpha.animate.set_value(end), run_time=run_time, rate_func=linear)
+            self.wait(0.35)
+            self.play(
+                FadeOut(tp),
+                FadeOut(xp),
+                FadeOut(moving_grid),
+                FadeOut(local_origin),
+                FadeOut(tplabel),
+                FadeOut(xplabel),
+                run_time=0.7,
+            )
+
+        plateau_spans = [2.1, 1.05, 0.525]
+        worldline = make_worldline(plateau_spans[0])
+        self.play(Create(worldline), run_time=1.4, rate_func=rate_functions.ease_out_cubic)
+        self.wait(0.5)
+
+        self.play(focus_on_plateau(plateau_spans[0], zoom=0.68), run_time=1.2)
+        run_local_frame(plateau_spans[0], run_time=4.3)
+
+        for i, plateau_span in enumerate(plateau_spans[1:]):
+            new_worldline = make_worldline(plateau_span)
+            self.play(
+                Transform(worldline, new_worldline),
+                self.camera.frame.animate.move_to(plateau_point(plateau_span, 0.5)).shift(UP*0.35+RIGHT*0.1),
+                run_time=1.4,
+                rate_func=smooth,
+            )
+            if i == 1:
+                self.play(
+                    self.camera.frame.animate.scale(0.82).move_to(plateau_point(plateau_span, 0.5)).shift(UP*0.35+RIGHT*0.1),
+                    run_time=1,
+                )
+            run_local_frame(plateau_span, run_time=3.6-i*0.5)
+
+        self.wait(2)
 
 
 
@@ -1524,7 +2095,7 @@ class CameramenLorentzAxes2(MovingCameraScene):
         self.wait(5)
 
 
-
+# 0%
 class Horizon(MovingCameraScene):
     def construct(self):
     # Chapters:
@@ -1607,7 +2178,7 @@ class Horizon(MovingCameraScene):
         ############# Chapter 5:
 
 
-
+# 80%
 class Geodesics(ThreeDScene):
     """Particles tracing same-radius free-fall paths around a massive body."""
 
