@@ -1,256 +1,501 @@
-from manim import *
+from pathlib import Path
+import math
+import os
+
 import numpy as np
+from PIL import Image, ImageDraw, ImageFont
 
 
-class LocalityOfPhysics(MovingCameraScene):
-    """A Manim scene showing a visible motion as the endpoint of local collisions."""
+ROOT = Path(__file__).resolve().parents[1]
+TRANSPARENT_BACKGROUND = os.environ.get("TRANSPARENT_BACKGROUND") == "1"
+FRAME_SUBDIR = os.environ.get(
+    "FRAME_SUBDIR",
+    "particle_collision_frames_alpha" if TRANSPARENT_BACKGROUND else "particle_collision_frames",
+)
+FRAME_DIR = ROOT / "work" / FRAME_SUBDIR
 
-    def construct(self):
-        self.camera.background_color = "#070914"
+WIDTH = 3840
+HEIGHT = 2160
+FPS = 60
+SIM_TIME = 11.0
+DT = 1 / 300
+RENDER_EVERY = int(round(1 / (FPS * DT)))
 
-        self.show_observed_motion()
-        self.show_local_cause()
-        self.show_full_causal_chain()
-        self.final_hold()
+RADIUS = 0.105
+MIN_DIST = 2 * RADIUS
+RESTITUTION = 0.992
+DRAW_RADIUS_SCALE = 0.64
 
-    def particle(self, point, color="#45C7FF", radius=0.16, name=None):
-        core = Circle(radius=radius)
-        core.set_fill(color, opacity=1)
-        core.set_stroke(WHITE, width=1.5, opacity=0.9)
+WORLD_X = (-6.2, 7.4)
+WORLD_Y = (-3.85, 3.85)
+SEED = 18
+BACKGROUND_RGB = (20, 29, 41)
+BACKGROUND_RGBA = (*BACKGROUND_RGB, 0 if TRANSPARENT_BACKGROUND else 255)
+FOLLOW_START = 5.6
+FOLLOW_END = 8.0
+VELOCITY_LABEL_START = FOLLOW_END + 0.35
 
-        glow = Circle(radius=radius * 1.75)
-        glow.set_fill(color, opacity=0.13)
-        glow.set_stroke(color, width=2, opacity=0.18)
 
-        body = VGroup(glow, core).move_to(point)
-        if name:
-            label = Text(name, font_size=20, color=WHITE).next_to(body, DOWN, buff=0.18)
-            return VGroup(body, label)
-        return body
+def load_font(size, bold=False):
+    candidates = [
+        "/System/Library/Fonts/Supplemental/Arial Bold.ttf" if bold else "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial.ttf",
+    ]
+    for candidate in candidates:
+        try:
+            return ImageFont.truetype(candidate, size)
+        except OSError:
+            pass
+    return ImageFont.load_default()
 
-    def velocity_mark(self, particle, direction=RIGHT, label="v", color="#FFD166"):
-        direction = normalize(direction)
-        start = particle.get_center() + direction * 0.20 + UP * 0.28
-        end = start + direction * 0.82
-        arrow = Arrow(
-            start,
-            end,
-            buff=0,
-            stroke_width=5,
-            max_tip_length_to_length_ratio=0.25,
-            color=color,
-        )
-        tex = MathTex(label, color=color).scale(0.72)
-        tex.next_to(arrow, UP, buff=0.05)
-        return VGroup(arrow, tex)
 
-    def trail(self, start, end, color="#45C7FF"):
-        line = DashedLine(start, end, dash_length=0.12, dashed_ratio=0.55)
-        line.set_stroke(color, width=3, opacity=0.42)
-        return line
+FONT = load_font(28)
+FONT_SMALL = load_font(22)
+FONT_BOLD = load_font(32, bold=True)
+VELOCITY_FONT = load_font(92, bold=True)
 
-    def collision_flash(self, point, color="#FFD166", radius=0.6):
-        ring = Circle(radius=0.08).move_to(point)
-        ring.set_stroke(color, width=5, opacity=0.95)
-        ring.set_fill(color, opacity=0.10)
 
-        sparks = VGroup()
-        for angle in np.linspace(0, TAU, 10, endpoint=False):
-            direction = np.array([np.cos(angle), np.sin(angle), 0])
-            spark = Line(point + direction * 0.09, point + direction * 0.28)
-            spark.set_stroke(color, width=3, opacity=0.9)
-            sparks.add(spark)
+def make_initial_state():
+    rng = np.random.default_rng(SEED)
 
-        burst = VGroup(ring, sparks)
-        burst.set_z_index(10)
+    positions = [np.array([-5.75, 0.04], dtype=float)]
+    velocities = [np.array([3.45, 0.01], dtype=float)]
 
-        return Succession(
-            FadeIn(burst, scale=0.4, run_time=0.06),
-            AnimationGroup(
-                ring.animate.scale(radius / 0.08).set_stroke(opacity=0).set_fill(opacity=0),
-                LaggedStart(
-                    *[
-                        spark.animate.shift((spark.get_end() - spark.get_start()) * 0.65).set_stroke(opacity=0)
-                        for spark in sparks
-                    ],
-                    lag_ratio=0.035,
-                ),
-                run_time=0.39,
+    spacing_factor = 1.45
+    spacing = MIN_DIST * spacing_factor
+    dy = math.sqrt(3) * RADIUS * spacing_factor
+
+    # A loose, imperfect hex cloud. There is enough empty space between disks
+    # for individual collisions to read before the cascade becomes chaotic.
+    for row in range(-5, 6):
+        row_width = 11 - max(0, abs(row) - 1)
+        y = row * dy
+        x_start = -1.05 - 0.5 * spacing * (row_width - 1)
+        for col in range(row_width):
+            x = x_start + col * spacing + (0.5 * spacing if row % 2 else 0)
+            if ((x - 0.02) / 2.10) ** 2 + (y / 1.75) ** 2 > 1.03:
+                continue
+            jitter = rng.normal(0, 0.014, size=2)
+            positions.append(np.array([x, y], dtype=float) + jitter)
+            velocities.append(np.zeros(2, dtype=float))
+
+    return np.array(positions), np.array(velocities)
+
+
+def resolve_overlaps_once(positions):
+    n_particles = len(positions)
+    for _ in range(16):
+        moved = False
+        for i in range(n_particles - 1):
+            for j in range(i + 1, n_particles):
+                delta = positions[j] - positions[i]
+                dist2 = float(np.dot(delta, delta))
+                if dist2 >= MIN_DIST * MIN_DIST:
+                    continue
+                dist = math.sqrt(dist2) if dist2 > 1e-12 else MIN_DIST
+                normal = delta / dist if dist > 1e-12 else np.array([1.0, 0.0])
+                overlap = MIN_DIST - dist
+                positions[i] -= 0.5 * overlap * normal
+                positions[j] += 0.5 * overlap * normal
+                moved = True
+        if not moved:
+            break
+
+
+def simulate():
+    positions, velocities = make_initial_state()
+    resolve_overlaps_once(positions)
+
+    n_particles = len(positions)
+    active_time = np.full(n_particles, np.inf)
+    active_time[0] = 0.0
+
+    position_frames = []
+    velocity_frames = []
+    collision_events = []
+    collision_count = 0
+
+    total_steps = int(SIM_TIME / DT)
+    for step in range(total_steps + 1):
+        if step % RENDER_EVERY == 0:
+            position_frames.append(positions.copy())
+            velocity_frames.append(velocities.copy())
+
+        if step == total_steps:
+            break
+
+        positions += velocities * DT
+        t = (step + 1) * DT
+
+        # Two passes keep dense, simultaneous contacts from tunneling through.
+        for _ in range(2):
+            for i in range(n_particles - 1):
+                for j in range(i + 1, n_particles):
+                    delta = positions[j] - positions[i]
+                    dist2 = float(np.dot(delta, delta))
+                    if dist2 >= MIN_DIST * MIN_DIST:
+                        continue
+
+                    if dist2 < 1e-12:
+                        normal = np.array([1.0, 0.0])
+                        dist = MIN_DIST
+                    else:
+                        dist = math.sqrt(dist2)
+                        normal = delta / dist
+
+                    overlap = MIN_DIST - dist
+                    positions[i] -= 0.5 * overlap * normal
+                    positions[j] += 0.5 * overlap * normal
+
+                    relative_velocity = velocities[j] - velocities[i]
+                    normal_speed = float(np.dot(relative_velocity, normal))
+                    if normal_speed >= 0:
+                        continue
+
+                    impulse = -(1 + RESTITUTION) * normal_speed / 2
+                    impulse_vector = impulse * normal
+                    velocities[i] -= impulse_vector
+                    velocities[j] += impulse_vector
+
+                    collision_count += 1
+                    collision_events.append((t, (positions[i] + positions[j]) * 0.5))
+
+                    i_active = math.isfinite(active_time[i])
+                    j_active = math.isfinite(active_time[j])
+                    if i_active and not j_active:
+                        active_time[j] = t
+                    elif j_active and not i_active:
+                        active_time[i] = t
+
+    return {
+        "positions": np.array(position_frames),
+        "velocities": np.array(velocity_frames),
+        "active_time": active_time,
+        "collision_events": collision_events,
+        "collision_count": collision_count,
+    }
+
+
+def choose_isolated_particle(data):
+    final_positions = data["positions"][-1]
+    final_velocities = data["velocities"][-1]
+    active = np.isfinite(data["active_time"])
+    speeds = np.linalg.norm(final_velocities, axis=1)
+
+    delta = final_positions[:, None, :] - final_positions[None, :, :]
+    distances = np.linalg.norm(delta, axis=2)
+    np.fill_diagonal(distances, np.inf)
+    nearest = distances.min(axis=1)
+
+    active_positions = final_positions[active]
+    center = np.median(active_positions, axis=0) if len(active_positions) else np.array([0.0, 0.0])
+    radial = np.linalg.norm(final_positions - center, axis=1)
+
+    score = 2.2 * nearest + 0.7 * radial + 1.0 * speeds
+    score[~active] = -np.inf
+    score[0] = -np.inf
+    score[speeds < 0.18] -= 2.0
+
+    selected = int(np.argmax(score))
+    if not np.isfinite(score[selected]):
+        selected = int(np.argmax(np.where(active, speeds, -np.inf)))
+    return selected
+
+
+def smoothstep(x):
+    x = min(1.0, max(0.0, x))
+    return x * x * (3 - 2 * x)
+
+
+def viewport_at(t, selected_position, selected_velocity):
+    fixed_center = np.array([(WORLD_X[0] + WORLD_X[1]) * 0.5, (WORLD_Y[0] + WORLD_Y[1]) * 0.5])
+    fixed_width = WORLD_X[1] - WORLD_X[0]
+
+    amount = smoothstep((t - FOLLOW_START) / (FOLLOW_END - FOLLOW_START))
+
+    target_center = np.array(selected_position, dtype=float)
+    center = (1 - amount) * fixed_center + amount * target_center
+    width = (1 - amount) * fixed_width + amount * 5.6
+    height = width * HEIGHT / WIDTH
+    speed = np.linalg.norm(selected_velocity)
+    target_angle = math.atan2(selected_velocity[1], selected_velocity[0]) if speed > 1e-6 else 0.0
+    angle = amount * target_angle
+    return center, width, height, angle
+
+
+def world_to_px(point, viewport):
+    center, width, height, angle = viewport
+    rel = np.array(point, dtype=float) - center
+    cos_a = math.cos(angle)
+    sin_a = math.sin(angle)
+    rotated = np.array(
+        [
+            cos_a * rel[0] + sin_a * rel[1],
+            -sin_a * rel[0] + cos_a * rel[1],
+        ]
+    )
+    x = WIDTH * 0.5 + rotated[0] / width * WIDTH
+    y = HEIGHT * 0.5 - rotated[1] / height * HEIGHT
+    return np.array([x, y], dtype=float)
+
+
+def world_radius_to_px(radius, viewport):
+    _, width, _, _ = viewport
+    return radius / width * WIDTH
+
+
+def world_vector_to_px(vector, viewport):
+    _, width, height, angle = viewport
+    cos_a = math.cos(angle)
+    sin_a = math.sin(angle)
+    rotated = np.array(
+        [
+            cos_a * vector[0] + sin_a * vector[1],
+            -sin_a * vector[0] + cos_a * vector[1],
+        ]
+    )
+    return np.array(
+        [
+            rotated[0] / width * WIDTH,
+            -rotated[1] / height * HEIGHT,
+        ],
+        dtype=float,
+    )
+
+
+def mix(a, b, amount):
+    a = np.array(a, dtype=float)
+    b = np.array(b, dtype=float)
+    return tuple(np.clip((1 - amount) * a + amount * b, 0, 255).astype(int))
+
+
+def draw_marble(draw, center, radius, color, glow_alpha=18, fill_alpha=255, outline_alpha=110):
+    x, y = center
+    for factor, alpha in [(1.55, glow_alpha)]:
+        r = radius * factor
+        draw.ellipse((x - r, y - r, x + r, y + r), fill=(*color, alpha))
+
+    rim = mix(color, (20, 24, 34), 0.34)
+    draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=(*rim, fill_alpha))
+
+    for step in range(7, 0, -1):
+        amount = step / 7
+        r = radius * (0.18 + 0.76 * amount)
+        offset = np.array([-0.08 * radius * (1 - amount), -0.10 * radius * (1 - amount)])
+        shade = mix(color, (255, 255, 255), 0.18 * (1 - amount))
+        draw.ellipse(
+            (
+                x + offset[0] - r,
+                y + offset[1] - r,
+                x + offset[0] + r,
+                y + offset[1] + r,
             ),
+            fill=(*shade, fill_alpha),
         )
 
-    def show_observed_motion(self):
-        title = Text("Observed motion", font_size=32, color="#DDE7FF")
-        title.to_edge(UP, buff=0.35)
+    highlight_center = np.array([x - radius * 0.36, y - radius * 0.38])
+    highlight_radius = radius * 0.22
+    draw.ellipse(
+        (
+            highlight_center[0] - highlight_radius,
+            highlight_center[1] - highlight_radius,
+            highlight_center[0] + highlight_radius,
+            highlight_center[1] + highlight_radius,
+        ),
+        fill=(255, 255, 255, 95),
+    )
+    draw.ellipse((x - radius, y - radius, x + radius, y + radius), outline=(255, 255, 255, outline_alpha), width=1)
 
-        first = self.particle(LEFT * 1.9, color="#45C7FF", name="A")
-        marker = self.velocity_mark(first, RIGHT, "v")
-        path = self.trail(first.get_center(), first.get_center() + RIGHT * 2.6)
 
-        self.play(FadeIn(title, shift=DOWN * 0.25), FadeIn(first, scale=0.92), run_time=0.8)
-        self.play(GrowArrow(marker[0]), Write(marker[1]), Create(path), run_time=0.8)
-        self.play(first.animate.shift(RIGHT * 2.6), marker.animate.shift(RIGHT * 2.6), run_time=1.55)
-        self.wait(0.35)
-        self.play(FadeOut(path), FadeOut(title), FadeOut(marker), FadeOut(first), run_time=0.55)
+def draw_arrow(draw, start, end, color, width=5, tip_length=None, tip_width=None):
+    start = np.array(start, dtype=float)
+    end = np.array(end, dtype=float)
+    direction = end - start
+    length = np.linalg.norm(direction)
+    if length < 1:
+        return
+    direction /= length
+    normal = np.array([-direction[1], direction[0]])
+    tip_len = min(length * 0.42, tip_length if tip_length is not None else max(28, width * 4.2))
+    tip_w = tip_width if tip_width is not None else max(16, width * 2.2)
+    shaft_end = end - direction * tip_len * 0.72
+    draw.line((tuple(start), tuple(shaft_end)), fill=color, width=width)
+    p1 = end
+    p2 = end - direction * tip_len + normal * tip_w
+    p3 = end - direction * tip_len - normal * tip_w
+    draw.polygon([tuple(p1), tuple(p2), tuple(p3)], fill=color)
 
-    def show_local_cause(self):
-        rewind = Text("rewind", font_size=30, color="#B8C7FF").to_edge(UP, buff=0.38)
-        first = self.particle(RIGHT * 0.7, color="#45C7FF", name="A")
-        incoming = self.particle(LEFT * 3.6, color="#FF6B6B", name="B")
-        incoming_arrow = self.velocity_mark(incoming, RIGHT, "v", color="#FFD166")
-        local_zone = Circle(radius=0.82, color="#7A88FF").move_to(LEFT * 0.4)
-        local_zone.set_stroke("#7A88FF", width=2.5, opacity=0.55)
-        local_zone.set_fill("#7A88FF", opacity=0.04)
 
-        self.play(FadeIn(rewind, shift=DOWN * 0.2), FadeIn(first), run_time=0.55)
-        self.play(
-            first.animate.move_to(LEFT * 0.4),
-            Rotate(rewind, angle=TAU, rate_func=there_and_back),
-            run_time=1.0,
-        )
-        self.play(FadeIn(local_zone), FadeIn(incoming), GrowArrow(incoming_arrow[0]), Write(incoming_arrow[1]))
-        self.play(incoming_arrow.animate.shift(RIGHT * 2.85), incoming.animate.move_to(LEFT * 0.55), run_time=1.0)
-        self.play(
-            self.collision_flash(LEFT * 0.45, color="#FFD166", radius=0.62),
-            first.animate.shift(RIGHT * 1.45),
-            FadeOut(incoming_arrow),
-            incoming.animate.set_opacity(0.45),
-            run_time=0.68,
-        )
-        result_arrow = self.velocity_mark(first, RIGHT, "v", color="#FFD166")
-        self.play(GrowArrow(result_arrow[0]), Write(result_arrow[1]), run_time=0.45)
-        self.wait(0.35)
-        self.play(
-            *[FadeOut(mob) for mob in [rewind, first, incoming, local_zone, result_arrow]],
-            run_time=0.65,
-        )
+def draw_velocity_label(draw, center, velocity_px, radius, opacity):
+    speed = np.linalg.norm(velocity_px)
+    if speed < 1e-4 or opacity <= 0:
+        return
 
-    def show_full_causal_chain(self):
-        header = Text("same event, earlier causes", font_size=30, color="#DDE7FF")
-        header.to_edge(UP, buff=0.34)
+    direction = velocity_px / speed
+    normal = np.array([-direction[1], direction[0]])
+    start = center
+    end = start + direction * radius * 5.0
+    alpha = int(255 * opacity)
+    arrow_color = (255, 230, 135, alpha)
+    draw_arrow(
+        draw,
+        start,
+        end,
+        arrow_color,
+        width=max(6, int(radius * 0.20)),
+        tip_length=radius * 1.10,
+        tip_width=radius * 0.44,
+    )
 
-        positions = [
-            LEFT * 5.6 + DOWN * 0.1,
-            LEFT * 4.2 + UP * 0.62,
-            LEFT * 3.0 + DOWN * 0.55,
-            LEFT * 1.8 + UP * 0.34,
-            LEFT * 0.72 + DOWN * 0.72,
-            RIGHT * 0.42 + UP * 0.55,
-            RIGHT * 1.55 + DOWN * 0.28,
-            RIGHT * 2.68 + UP * 0.34,
-            RIGHT * 3.72 + DOWN * 0.2,
-        ]
+    label_pos = end + normal * radius * 0.78 - direction * radius * 0.08
+    draw.text(tuple(label_pos), "v", font=VELOCITY_FONT, anchor="mm", fill=(255, 235, 150, alpha))
 
-        colors = [
-            "#FF6B6B",
-            "#2DD4BF",
-            "#B8F35A",
-            "#F472B6",
-            "#A78BFA",
-            "#4ADE80",
-            "#F59E0B",
-            "#38BDF8",
-            "#FF6B6B",
-        ]
 
-        particles = VGroup(*[self.particle(pos, colors[i]) for i, pos in enumerate(positions)])
-        first_particle = self.particle(RIGHT * 5.15 + DOWN * 0.2, color="#45C7FF", name="A")
-        first_marker = self.velocity_mark(first_particle, RIGHT, "v", color="#FFD166")
+def draw_trail(draw, points, color, viewport, width=3):
+    if len(points) < 2:
+        return
+    for idx in range(1, len(points)):
+        a = world_to_px(points[idx - 1], viewport)
+        b = world_to_px(points[idx], viewport)
+        alpha = int(25 + 180 * idx / max(1, len(points) - 1))
+        draw.line((tuple(a), tuple(b)), fill=(*color, alpha), width=width)
 
-        faint_links = VGroup()
-        for a, b in zip(positions[:-1], positions[1:]):
-            link = DashedLine(a, b, dash_length=0.08, dashed_ratio=0.45)
-            link.set_stroke("#C7D2FE", width=1.7, opacity=0.16)
-            faint_links.add(link)
 
-        self.play(FadeIn(header, shift=DOWN * 0.2), FadeIn(particles, lag_ratio=0.08), Create(faint_links), run_time=1.1)
+def draw_background(draw, viewport):
+    draw.rectangle((0, 0, WIDTH, HEIGHT), fill=BACKGROUND_RGBA)
 
-        first_arrow = self.velocity_mark(particles[0], RIGHT, "v", color="#FFD166")
-        self.play(GrowArrow(first_arrow[0]), Write(first_arrow[1]), run_time=0.55)
 
-        active_arrow = first_arrow
-        for i in range(len(particles) - 1):
-            source = particles[i]
-            target = particles[i + 1]
-            source_start = source.get_center()
-            target_start = target.get_center()
-            direction = normalize(target_start - source_start)
-            impact = target_start - direction * 0.30
-            next_shift = direction * 0.54
+def render_frames(data, selected):
+    FRAME_DIR.mkdir(parents=True, exist_ok=True)
+    for existing in FRAME_DIR.glob("frame_*.png"):
+        existing.unlink()
 
-            self.play(
-                source.animate.move_to(impact),
-                active_arrow.animate.move_to(impact + UP * 0.42 + direction * 0.28),
-                run_time=0.42 if i < 4 else 0.34,
-                rate_func=smooth,
+    positions = data["positions"]
+    velocities = data["velocities"]
+    active_time = data["active_time"]
+    collision_events = data["collision_events"]
+
+    palette = [
+        (69, 199, 255),
+        (255, 107, 107),
+        (45, 212, 191),
+        (184, 243, 90),
+        (244, 114, 182),
+        (167, 139, 250),
+        (74, 222, 128),
+        (245, 158, 11),
+        (56, 189, 248),
+    ]
+    colors = [palette[i % len(palette)] for i in range(positions.shape[1])]
+    colors[0] = (255, 209, 102)
+
+    event_cursor = 0
+    recent_events = []
+
+    for frame_idx, frame_positions in enumerate(positions):
+        t = frame_idx / FPS
+        viewport = viewport_at(t, frame_positions[selected], velocities[frame_idx, selected])
+        contact_radius_px = world_radius_to_px(RADIUS, viewport)
+        radius_px = contact_radius_px * DRAW_RADIUS_SCALE
+        img = Image.new("RGBA", (WIDTH, HEIGHT), BACKGROUND_RGBA)
+        draw = ImageDraw.Draw(img, "RGBA")
+        draw_background(draw, viewport)
+
+        while event_cursor < len(collision_events) and collision_events[event_cursor][0] <= t:
+            recent_events.append(collision_events[event_cursor])
+            event_cursor += 1
+        recent_events = [event for event in recent_events if t - event[0] < 0.18]
+
+        if frame_idx > 1:
+            draw_trail(
+                draw,
+                positions[max(0, frame_idx - 42) : frame_idx + 1, 0, :],
+                (255, 209, 102),
+                viewport,
+                width=3,
             )
-            self.play(
-                self.collision_flash(target_start, color=colors[(i + 2) % len(colors)], radius=0.44),
-                target.animate.shift(next_shift),
-                source.animate.set_opacity(0.45),
-                FadeOut(active_arrow, shift=direction * 0.2),
-                run_time=0.36,
+
+        selected_active = math.isfinite(active_time[selected]) and t >= active_time[selected]
+        if selected_active and frame_idx > 10:
+            start = max(0, frame_idx - 90)
+            draw_trail(draw, positions[start : frame_idx + 1, selected, :], (255, 235, 153), viewport, width=4)
+
+        for event_t, event_pos in recent_events:
+            age = t - event_t
+            amount = max(0.0, 1.0 - age / 0.18)
+            center = world_to_px(event_pos, viewport)
+            ring_radius = contact_radius_px * (0.85 + 2.2 * age / 0.18)
+            alpha = int(85 * amount)
+            draw.ellipse(
+                (
+                    center[0] - ring_radius,
+                    center[1] - ring_radius,
+                    center[0] + ring_radius,
+                    center[1] + ring_radius,
+                ),
+                outline=(255, 218, 121, alpha),
+                width=1,
             )
-            active_arrow = self.velocity_mark(target, direction, "v", color="#FFD166")
-            self.play(GrowArrow(active_arrow[0]), Write(active_arrow[1]), run_time=0.20)
 
-            if i in {2, 4, 5}:
-                jitter_group = VGroup(*[p for j, p in enumerate(particles) if j > i + 1])
-                if len(jitter_group) > 0:
-                    self.play(
-                        LaggedStart(
-                            *[
-                                mob.animate.shift(
-                                    np.array([
-                                        0.10 * np.sin((j + 1) * 1.7),
-                                        0.09 * np.cos((j + 2) * 1.3),
-                                        0,
-                                    ])
-                                )
-                                for j, mob in enumerate(jitter_group)
-                            ],
-                            lag_ratio=0.04,
-                        ),
-                        run_time=0.22,
-                    )
+        order = np.argsort(frame_positions[:, 1])
+        for particle_idx in order:
+            center = world_to_px(frame_positions[particle_idx], viewport)
+            was_hit = t >= active_time[particle_idx]
 
-        final_mover = particles[-1]
-        final_arrow = active_arrow
-        final_start = final_mover.get_center()
-        final_hit = first_particle.get_center() + LEFT * 0.30
-        final_path = self.trail(final_start, final_hit, color="#FF6B6B")
-        incoming_arrow = self.velocity_mark(final_mover, RIGHT, "v", color="#FFD166")
+            if particle_idx == selected and selected_active:
+                base = (255, 227, 121)
+                fill_alpha = 255
+                glow_alpha = 70
+            elif was_hit:
+                age = max(0.0, t - active_time[particle_idx])
+                flash = max(0.0, 1.0 - age / 0.45)
+                base = mix(colors[particle_idx], (255, 255, 255), 0.35 * flash)
+                fill_alpha = 245
+                glow_alpha = 28
+            else:
+                base = (92, 101, 125)
+                fill_alpha = 160
+                glow_alpha = 8
 
-        self.play(
-            FadeIn(first_particle),
-            Create(final_path),
-            ReplacementTransform(final_arrow, incoming_arrow),
-            run_time=0.55,
-        )
-        self.play(
-            final_mover.animate.move_to(final_hit),
-            incoming_arrow.animate.move_to(final_hit + RIGHT * 0.48 + UP * 0.35),
-            run_time=1.0,
-            rate_func=smooth,
-        )
-        self.play(
-            self.collision_flash(first_particle.get_center(), color="#FFD166", radius=0.70),
-            first_particle.animate.shift(RIGHT * 1.05),
-            FadeOut(incoming_arrow),
-            FadeOut(final_path),
-            final_mover.animate.set_opacity(0.42),
-            run_time=0.70,
-        )
-        self.play(GrowArrow(first_marker[0]), Write(first_marker[1]), run_time=0.45)
-        self.wait(0.6)
+            draw_marble(draw, center, radius_px, base, glow_alpha=glow_alpha, fill_alpha=fill_alpha)
 
-        self.chain_mobjects = VGroup(header, particles, faint_links, first_particle, first_marker)
+        if selected_active and t > SIM_TIME * 0.70:
+            center = world_to_px(frame_positions[selected], viewport)
+            pulse = 1 + 0.12 * math.sin(2 * math.pi * 2.0 * t)
+            r = radius_px * 2.45 * pulse
+            draw.ellipse(
+                (center[0] - r, center[1] - r, center[0] + r, center[1] + r),
+                outline=(255, 235, 153, 150),
+                width=2,
+            )
 
-    def final_hold(self):
-        message = Text("local pushes, global story", font_size=34, color="#DDE7FF")
-        message.to_edge(DOWN, buff=0.42)
-        glow_line = Line(LEFT * 5.6 + DOWN * 1.25, RIGHT * 5.8 + DOWN * 1.25)
-        glow_line.set_stroke("#FFD166", width=4, opacity=0.7)
+        if selected_active and t > VELOCITY_LABEL_START:
+            center = world_to_px(frame_positions[selected], viewport)
+            opacity = smoothstep((t - VELOCITY_LABEL_START) / 0.55)
+            velocity_px = world_vector_to_px(velocities[frame_idx, selected], viewport)
+            draw_velocity_label(draw, center, velocity_px, radius_px, opacity)
 
-        self.play(FadeIn(message, shift=UP * 0.18), Create(glow_line), run_time=0.8)
-        self.wait(1.2)
+        frame_path = FRAME_DIR / f"frame_{frame_idx:04d}.png"
+        if TRANSPARENT_BACKGROUND:
+            img.save(frame_path)
+        else:
+            img.convert("RGB").save(frame_path, quality=95)
+
+
+def main():
+    data = simulate()
+    selected = choose_isolated_particle(data)
+    render_frames(data, selected)
+
+    final_speed = float(np.linalg.norm(data["velocities"][-1, selected]))
+    print(f"frames={len(data['positions'])}")
+    print(f"particles={data['positions'].shape[1]}")
+    print(f"collisions={data['collision_count']}")
+    print(f"selected_particle={selected}")
+    print(f"selected_final_speed={final_speed:.3f}")
+    print(f"frame_dir={FRAME_DIR}")
+
+
+if __name__ == "__main__":
+    main()
