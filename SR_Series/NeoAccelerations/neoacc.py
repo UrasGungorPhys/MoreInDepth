@@ -50,7 +50,7 @@ Vanilla2 = ManimColor.from_hex("#E8D0B7")
 
 gndcolor1 = Vanilla2
 gndcolor2 = SteelBlue
-gndhighlight = LightBlue
+gndhighlight = PlasticPink
 gndhighlight2 = Greenough
 
 pcolor1 = LightBlue
@@ -717,21 +717,23 @@ class Hyperbolic(MovingCameraScene):
         ############################################### Initializing ########################################################
         #################### Set up axes
         self.camera.background_color = BGtry
-        self.camera.frame.scale(0.9).shift(RIGHT)
         ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
-        x_length=7, y_length=7,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.22).shift(DOWN*0.1)
+        og = ORIGIN
+        OG = ORIGIN
 
 
-        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
 
         xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor).set_opacity(0.5)
         xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor)
-        OG = ax.c2p(0,0)
         xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
         that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
 
-        self.play(Create(ax), Write(ax_labels), run_time=1)
-        grids = homemade_grid(ax, [0,13], [0,13], gndcolor1, opacitychoice=0.25)
+        self.play(Create(ax), Write(xlabel), Write(tlabel), run_time=1)
+        grids = homemade_grid(ax, [0,10], [0,10], gndcolor1, opacitychoice=0.25)
         self.play(Create(grids))
         #################### Set up hyperbola, draw worldline
         hypx0 = 2
@@ -923,13 +925,6 @@ class Hyperbolic(MovingCameraScene):
             """Damped overshoot ending exactly at the target mobject."""
             return 1-np.exp(-6*t)*np.cos(4.5*np.pi*t)
         
-        self.camera.frame.save_state()
-        self.play(
-            self.camera.frame.animate()
-            .scale(1.15)
-            .move_to(ax.c2p(3.2, 5.0)),
-            run_time=1.4,
-        )
 
         acc1 = Dot(worldline.get_start())
         self.play(Create(acc1))
@@ -943,9 +938,14 @@ class Hyperbolic(MovingCameraScene):
             [5.3, 6.0, 6.7],
         ))
 
+
+        self.camera.frame.save_state()
+        self.play(
+            self.camera.frame.animate()
+            .scale(1.15))
         tglines = VGroup()
         for i in range(len(tgxs)-1):
-            
+
             xi = tgxs[i+1]
             
             self.play(
@@ -969,13 +969,13 @@ class Hyperbolic(MovingCameraScene):
         
 
         ############## Chapter 4: Tangent lines as the t' axis for the accelerator
-        self.camera.frame.save_state()
-        self.play(
-            self.camera.frame.animate()
-            .scale(1.15)
-            .move_to(ax.c2p(3.2, 5.0)),
-            run_time=1.4,
-        )
+        # self.camera.frame.save_state()
+        # self.play(
+        #     self.camera.frame.animate()
+        #     .scale(1.15)
+        #     .move_to(ax.c2p(3.2, 5.0)),
+        #     run_time=1.4,
+        # )
 
         acc1 = Dot(worldline.get_start())
         self.play(Create(acc1))
@@ -1018,7 +1018,7 @@ class Hyperbolic(MovingCameraScene):
             tprime_axes.add(tprime_axis)
 
         self.wait(1)
-        self.play(Restore(self.camera.frame), run_time=1.4)
+        # self.play(Restore(self.camera.frame), run_time=1.4)
         self.play(FadeOut(tprime_axes, acc1), run_time=0.6)
 
         # Bring back every tangent from Chapter 2, then turn all of their upper
@@ -1046,24 +1046,30 @@ class Hyperbolic(MovingCameraScene):
         ])
 
         self.play(
-            self.camera.frame.animate.scale(1.15).move_to(ax.c2p(3.2, 5.0)),
+            # self.camera.frame.animate.scale(1.15).move_to(ax.c2p(3.2, 5.0)),
             *[FadeIn(tangent) for tangent in all_tangents],
             run_time=1.2,
         )
-        self.wait(0.5)
-        self.play(
-            *[
-                ReplacementTransform(all_tangents[index-1], tprime_axis)
-                for index, tprime_axis in zip(arrow_indices, all_tprime_axes)
-            ],
-            *[
-                FadeOut(all_tangents[index-1])
-                for index in skipped_indices
-            ],
-            run_time=2.2,
-            rate_func=smooth,
-        )
-        self.wait(3)
+
+        wlcopy = worldline.copy().set_color(LemonOrange)
+        self.wait(2)
+        self.play(Transform(all_tangents, wlcopy), run_time=2.5)
+
+        self.wait(5)
+        # self.wait(0.5)
+        # self.play(
+        #     *[
+        #         ReplacementTransform(all_tangents[index-1], tprime_axis)
+        #         for index, tprime_axis in zip(arrow_indices, all_tprime_axes)
+        #     ],
+        #     *[
+        #         FadeOut(all_tangents[index-1])
+        #         for index in skipped_indices
+        #     ],
+        #     run_time=2.2,
+        #     rate_func=smooth,
+        # )
+        # self.wait(3)
 
         ############## Chapter 5: Drawing the x' axis using light rays and symmetry
         ############## Chapter 6: x' axes as lines of simultaneity for "now"
@@ -1263,13 +1269,13 @@ class TprimeAxes(MovingCameraScene):
                 buff=0,
                 stroke_width=7,
                 max_tip_length_to_length_ratio=0.08,
-            ).set_color(gndhighlight).set_z_index(3)
+            ).set_color(gndcolor1).set_z_index(3)
         )
         ground_x_projector = always_redraw(
-            lambda: line_or_empty(ground_tip(), ground_xfoot(), gndhighlight, 3, 0.75, dashed=True)
+            lambda: line_or_empty(ground_tip(), ground_xfoot(), gndcolor1, 3, 0.75, dashed=True)
         )
         ground_t_projector = always_redraw(
-            lambda: line_or_empty(ground_tip(), ground_tfoot(), gndhighlight, 3, 0.75, dashed=True)
+            lambda: line_or_empty(ground_tip(), ground_tfoot(), gndcolor1, 3, 0.75, dashed=True)
         )
         ground_delta_t = always_redraw(
             lambda: line_or_empty(og, ground_tfoot(), gndhighlight, 6, 1)
@@ -1287,10 +1293,10 @@ class TprimeAxes(MovingCameraScene):
             .set_opacity(min(1, ground_tilt.get_value()*6))
         )
 
-        self.wait(0.8)
+        self.wait(2)
         self.play(Create(ground_arrow), run_time=0.8)
-        self.wait(0.6)
-        self.play(ground_tilt.animate.set_value(0.27), run_time=1.1, rate_func=smooth)
+        self.wait(2)
+        # self.play(ground_tilt.animate.set_value(0.27), run_time=2, rate_func=smooth)
         self.play(
             Create(ground_x_projector),
             Create(ground_t_projector),
@@ -1300,12 +1306,14 @@ class TprimeAxes(MovingCameraScene):
             Write(ground_dx_label),
             run_time=1,
         )
-        self.wait(0.8)
-        self.play(ground_tilt.animate.set_value(0), run_time=1.8, rate_func=smooth)
+        self.play(ground_tilt.animate.set_value(0.27), run_time=2, rate_func=smooth)
+
+        self.wait(2)
+        self.play(ground_tilt.animate.set_value(0), run_time=2, rate_func=smooth)
         ground_v_label = MathTex(r"\vec v").set_color(gndhighlight).scale(0.9)
         ground_v_label.next_to(ground_arrow.get_end(), RIGHT, buff=0.15)
         self.play(Write(ground_v_label), run_time=0.7)
-        self.wait(0.8)
+        self.wait(2)
         self.play(
             FadeOut(
                 ground_x_projector,
