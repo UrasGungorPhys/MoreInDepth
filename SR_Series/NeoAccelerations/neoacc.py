@@ -1095,105 +1095,6 @@ class Hyperbolic(MovingCameraScene):
 
 
 
-class TprimeAxes0(MovingCameraScene):
-    # Show why the t' axes are the tangent lines to the hyperbolic worldline of an accelerating observer.
-    # Demonstrate that an observer being in rest in their own frame leads to this.
-
-    def construct(self):
-        
-
-        # Inits
-        self.camera.background_color=BGtry
-
-        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
-        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
-        self.camera.frame.scale(1.2)
-        ax.shift(ORIGIN-ax.c2p(0,0))
-        og = ORIGIN
-        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
-        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
-        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
-        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
-        
-
-        self.camera.frame.scale(0.6)
-        ogdot = Dot(ORIGIN).set_color(gndcolor1)
-        self.play(Create(ogdot))
-        self.wait(1)
-        self.play(Transform(ogdot, ax.x_axis), self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4), rate_func=rate_functions.ease_out_back, run_time=1.1)
-        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.8), rate_func=rate_functions.ease_out_back, run_time=1.1)
-        self.play(Write(xlabel), Write(tlabel))
-
-        self.play(Create(grid1), run_time=1.2)
-        self.play(Create(lightray), run_time=1.2)
-
-        
-        self.wait(3)
-        
-        ################################ Scene 3 - Hyperbolic ################################
-        #################### Set up hyperbola, draw worldline ########################
-        hypx0 = 2
-        hypxf = 5.5
-        center=-2
-        def hyperbola(x, x0=hypx0, center=-2):
-            return np.sqrt((x-center)**2 - (x0)**2)
-        
-
-        def nhyperbola(x, x0=hypx0, center=-2):
-            return -np.sqrt((x-center)**2 - (x0)**2)
-        
-
-        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=-2):
-            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=8).set_color(phighlight2)
-            return wlpiece
-        
-        def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
-            #t^2 = sqrt(x^2 - x0^2)
-            x1 = np.sqrt(t1**2 +x0**2)
-            x2 = np.sqrt(t2**2 +x0**2)
-
-            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
-            return wlpiece
-        
-        P = Dot(ax.c2p(center, 0, 0))
-        def getxprime(x, P_point=P, colorchoice=NeonOrange):
-            hyp_point = ax.c2p(x, hyperbola(x))
-            intline = Line(P_point, hyp_point)
-            xphat = intline.get_unit_vector()
-            xp = Arrow(hyp_point, hyp_point+xphat*3, buff=0).set_color(colorchoice)
-
-            return xp
-        
-        def gettprime(x, P_point=P, colorchoice=NeonOrange):
-            hyp_point = ax.c2p(x, hyperbola(x))
-            intline = Line(P_point, hyp_point)
-            xphat = intline.get_unit_vector()
-            tphat = np.array([xphat[1], xphat[0], 0])
-            tp = Arrow(hyp_point, hyp_point+tphat*3, buff=0).set_color(colorchoice)
-            acchere = Dot(hyp_point)
-
-            return tp
-
-        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=7).set_color(gndcolor2)
-
-        ########### Setup complete ################
-
-
-        self.play(Create(worldline), run_time=1.2, rate_func=rate_functions.ease_out_cubic)
-        acc1 = Dot(hyperbolapiece(0,0.2).get_end(), radius=0.12).set_color(NeonOrange)
-        self.play(Create(acc1))
-        acctp = always_redraw(lambda: gettprime(ax.p2c(acc1.get_center())[0]))
-        accxp = always_redraw(lambda: getxprime(ax.p2c(acc1.get_center())[0]))
-        vlabel = always_redraw(lambda: MathTex(f"v = {glslope(accxp):.2f} c").set_z_index(1).move_to(acc1.get_center()).shift(DOWN*0.5+RIGHT*0.5).set_color(NeonOrange))
-        vlabelbox = always_redraw(lambda: RoundedRectangle(corner_radius=0.2, width=vlabel.width+0.5, height=vlabel.height+0.2).set_stroke(MistyBlue).set_fill(MistyBlue, opacity=1).move_to(vlabel.get_center()))
-
-        self.play(Create(acctp), Create(accxp))
-        self.play(Write(vlabel), Create(vlabelbox)) # Add a little box around this to show it over the lines 
-
-        self.play(MoveAlongPath(acc1, hyperbolapiece(0.2, 4.5), rate_func=rate_functions.ease_in_sine, run_time=10))        
-
-
-
 class TprimeAxes(MovingCameraScene):
     # Show why the t' axes are the tangent lines to the hyperbolic worldline of an accelerating observer.
     # Demonstrate that an observer being in rest in their own frame leads to this.
@@ -1269,7 +1170,7 @@ class TprimeAxes(MovingCameraScene):
                 buff=0,
                 stroke_width=7,
                 max_tip_length_to_length_ratio=0.08,
-            ).set_color(gndcolor1).set_z_index(3)
+            ).set_color(pcolor1).set_z_index(3)
         )
         ground_x_projector = always_redraw(
             lambda: line_or_empty(ground_tip(), ground_xfoot(), gndcolor1, 3, 0.75, dashed=True)
@@ -1278,7 +1179,7 @@ class TprimeAxes(MovingCameraScene):
             lambda: line_or_empty(ground_tip(), ground_tfoot(), gndcolor1, 3, 0.75, dashed=True)
         )
         ground_delta_t = always_redraw(
-            lambda: line_or_empty(og, ground_tfoot(), gndhighlight, 6, 1)
+            lambda: line_or_empty(og, ground_tfoot(), gndhighlight, 6, min(1, ground_tilt.get_value()*6))
         )
         ground_delta_x = always_redraw(
             lambda: line_or_empty(og, ground_xfoot(), gndhighlight, 6, min(1, ground_tilt.get_value()*6))
@@ -1310,8 +1211,8 @@ class TprimeAxes(MovingCameraScene):
 
         self.wait(2)
         self.play(ground_tilt.animate.set_value(0), run_time=2, rate_func=smooth)
-        ground_v_label = MathTex(r"\vec v").set_color(gndhighlight).scale(0.9)
-        ground_v_label.next_to(ground_arrow.get_end(), RIGHT, buff=0.15)
+        ground_v_label = MathTex(r"\vec v").set_color(pcolor2).scale(1.1)
+        ground_v_label.next_to(ground_arrow.get_end(), RIGHT+UP*0.3, buff=0.15)
         self.play(Write(ground_v_label), run_time=0.7)
         self.wait(2)
         self.play(
@@ -1447,7 +1348,8 @@ class TprimeAxes(MovingCameraScene):
         )
         self.play(prime_alpha.animate.set_value(1), run_time=1.8, rate_func=linear)
         self.wait(0.6)
-        self.play(prime_tilt.animate.set_value(0), run_time=1.8, rate_func=smooth)
+
+        self.play(prime_tilt.animate.set_value(0), FadeOut(prime_delta_t), FadeOut(prime_dot), run_time=1.8, rate_func=smooth)
         prime_v_label = MathTex(r"\vec v").set_color(gndhighlight).scale(0.9)
         prime_v_label.next_to(prime_motion_arrow.get_end(), RIGHT, buff=0.15)
         self.play(Write(prime_v_label), run_time=0.7)
@@ -1461,7 +1363,6 @@ class TprimeAxes(MovingCameraScene):
                 prime_dx_label,
                 prime_dt_label,
                 prime_motion_arrow,
-                prime_dot,
                 prime_v_label,
                 tpax,
                 xpax,
@@ -1523,12 +1424,15 @@ class TprimeAxes(MovingCameraScene):
         accxplabel = always_redraw(
             lambda: MathTex("x'").set_color(SkyBlue).scale(0.7).next_to(accxp.get_end(), UR, buff=0.07)
         )
-        accvlabel = always_redraw(
-            lambda: MathTex(r"\vec v").set_color(NeonOrange).scale(0.8).next_to(acctp.get_end(), UR, buff=0.07)
-        )
+        
 
         self.play(Create(acctp), Create(accxp), Write(acctplabel), Write(accxplabel), run_time=0.9)
-        self.play(MoveAlongPath(acc1, hyperbolapiece(0, 1.6)), run_time=3, rate_func=linear)
+        self.play(MoveAlongPath(acc1, hyperbolapiece(0, 1.6)), run_time=6, rate_func=linear)
+
+        accvlabel = always_redraw(
+            lambda: MathTex(r"\vec v").set_color(NeonOrange).scale(1.1).next_to(acctp.get_end(), UL, buff=0.1)
+        )
+
         self.play(FadeOut(accxp), FadeOut(accxplabel), FadeOut(acctplabel), FadeIn(accvlabel), run_time=0.8)
         self.play(MoveAlongPath(acc1, hyperbolapiece(1.6, 4.5)), run_time=5, rate_func=rate_functions.ease_in_sine)
         self.wait(2)
