@@ -217,8 +217,45 @@ def line_function_intersection(line, func, ax):
     return intersections
 
 
-def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.25):
-    pass
+
+def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.35, spacing=0.35, length_ratio=0.86):
+    origin = xp.get_start()
+    xphat = xp.get_unit_vector()
+    tphat = tp.get_unit_vector()
+    xlen = xp.get_length()
+    tlen = tp.get_length()
+    grid = VGroup()
+
+    for i in range(1, int(tlen/spacing)+1):
+        offset = i*spacing
+        if offset >= tlen*0.96:
+            break
+        grid.add(
+            Line(
+                origin+tphat*offset,
+                origin+tphat*offset+xphat*xlen*length_ratio,
+                stroke_width=2,
+                stroke_color=colorchoice,
+                stroke_opacity=opacitychoice,
+            )
+        )
+
+    for i in range(1, int(xlen/spacing)+1):
+        offset = i*spacing
+        if offset >= xlen*0.96:
+            break
+        grid.add(
+            Line(
+                origin+xphat*offset,
+                origin+xphat*offset+tphat*tlen*length_ratio,
+                stroke_width=2,
+                stroke_color=colorchoice,
+                stroke_opacity=opacitychoice,
+            )
+        )
+
+    return grid
+
 
 
 def reverse_rate_func(func):
@@ -1385,7 +1422,7 @@ class TprimeAxes(MovingCameraScene):
                 lambda x: hyperbola(x),
                 x_range=[x1, x2, 0.01],
                 use_smoothing=False,
-                stroke_width=8,
+                stroke_width=8
             ).set_opacity(opacity).set_color(phighlight2)
 
         P = ax.c2p(center, 0, 0)
@@ -1428,6 +1465,7 @@ class TprimeAxes(MovingCameraScene):
 
         self.play(Create(acctp), Create(accxp), Write(acctplabel), Write(accxplabel), run_time=0.9)
         self.play(MoveAlongPath(acc1, hyperbolapiece(0, 1.6)), run_time=6, rate_func=linear)
+        # Perhaps do the v arrow thing first, change it into Lorentz Axes after?
 
         accvlabel = always_redraw(
             lambda: MathTex(r"\vec v").set_color(NeonOrange).scale(1.1).next_to(acctp.get_end(), UL, buff=0.1)
