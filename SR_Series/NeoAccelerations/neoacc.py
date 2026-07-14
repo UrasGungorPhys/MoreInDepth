@@ -2357,3 +2357,371 @@ class Geodesics(ThreeDScene):
         return vector / norm
 
 
+
+# Find camera angles to make the transformation work better for transition from 2d to 3d
+
+
+class Flat2Curved(ThreeDScene):
+    def construct(self):
+        self.camera.background_color = BGtry
+        
+        
+
+        ax = Axes(
+            x_range=[0, 7, 1],
+            y_range=[0, 7, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        ax.shift(ORIGIN - ax.c2p(0, 0))
+
+        og = ax.c2p(0, 0)
+        flat_grid_center = ax.c2p(3.5, 3.5, 0)
+        frame_center = ax.c2p(1, 2, 0)
+        flat_pre_rotation = -90 * DEGREES
+
+        def pre_rotated(mob):
+            return mob.rotate(flat_pre_rotation, about_point=flat_grid_center)
+
+        self.set_camera_orientation(
+            phi=0 * DEGREES,
+            theta=-90 * DEGREES,
+            gamma=90 * DEGREES,
+            zoom=0.66,
+            frame_center=frame_center,
+        )
+
+        ground_grid_reference = self.make_flat_spacetime_grid(ax, propercolor, opacity=0.25)
+        ground_grid = pre_rotated(ground_grid_reference.copy())
+        lightray = DashedLine(og, ax.c2p(6.8, 6.8), dash_length=0.1)
+        lightray.set_color(lightcolor).set_stroke(opacity=0.85)
+        lightray = pre_rotated(lightray)
+        x_axis = pre_rotated(ax.x_axis.copy())
+        y_axis = pre_rotated(ax.y_axis.copy())
+        xlabel = pre_rotated(
+            MathTex("x").move_to(ax.x_axis.get_end()).shift(UP * 0.5).set_color(gndcolor1)
+        )
+        tlabel = pre_rotated(
+            MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT * 0.35 + UP * 0.1).set_color(gndcolor1)
+        )
+
+        ogdot = pre_rotated(Dot(og).set_color(gndcolor1))
+        self.play(Create(ogdot), run_time=0.4)
+        self.play(Transform(ogdot, x_axis), rate_func=rate_functions.ease_out_back, run_time=1.0)
+        self.play(Create(y_axis), rate_func=rate_functions.ease_out_back, run_time=1.0)
+        self.play(Write(xlabel), Write(tlabel), run_time=0.65)
+        self.play(Create(ground_grid), Create(lightray), run_time=1.2)
+
+        v = ValueTracker(0)
+        self.add(v)
+
+        xpax = always_redraw(
+            lambda: pre_rotated(
+                Arrow(
+                    og,
+                    self.lorentz_axis_end(ax, v.get_value(), "x"),
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.07,
+                ).set_color(pcolor1)
+            )
+        )
+        tpax = always_redraw(
+            lambda: pre_rotated(
+                Arrow(
+                    og,
+                    self.lorentz_axis_end(ax, v.get_value(), "t"),
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.07,
+                ).set_color(pcolor1)
+            )
+        )
+        prime_grid = always_redraw(
+            lambda: pre_rotated(
+                self.make_lorentz_grid(
+                    ax,
+                    v.get_value(),
+                    color=pcolor1,
+                    opacity=0.36,
+                    stroke_width=2.2,
+                )
+            )
+        )
+        xplabel = always_redraw(
+            lambda: pre_rotated(
+                MathTex("x'")
+                .move_to(self.lorentz_axis_end(ax, v.get_value(), "x"))
+                .shift(UP * 0.5 + LEFT * 0.15)
+                .set_color(SteelBlue)
+            )
+        )
+        tplabel = always_redraw(
+            lambda: pre_rotated(
+                MathTex("t'")
+                .move_to(self.lorentz_axis_end(ax, v.get_value(), "t"))
+                .shift(RIGHT * 0.4 + DOWN * 0.07)
+                .set_color(SteelBlue)
+            )
+        )
+
+        self.play(Create(prime_grid), Create(tpax), Create(xpax), run_time=1.0)
+        self.play(Write(xplabel), Write(tplabel), run_time=0.8)
+        self.wait(0.4)
+        self.play(v.animate.set_value(0.3), run_time=1.7, rate_func=smooth)
+        self.wait(0.7)
+        
+
+        for mob in [prime_grid, xpax, tpax, xplabel, tplabel]:
+            mob.clear_updaters()
+
+        sphere_radius = 10.0
+        sphere_center = flat_grid_center - sphere_radius * OUT + LEFT + DOWN
+        curved_patch_center = flat_grid_center + RIGHT*4 + DOWN*2
+        curvature_view_center = curved_patch_center + UP * 0.20
+        shell = Sphere(radius=sphere_radius, resolution=(36, 18))
+        shell.move_to(sphere_center)
+        shell.set_fill("#1f3448", opacity=0.055)
+        shell.set_stroke("#536a86", width=0.25, opacity=0.12)
+
+        body = Sphere(radius=0.55, resolution=(36, 18))
+        body.move_to(sphere_center)
+        body.set_fill("#101828", opacity=1.0)
+        body.set_stroke("#8ba4c7", width=0.4, opacity=0.35)
+
+        curved_ground = self.bend_visible_grid_to_sphere(
+            sphere_center,
+            sphere_radius,
+            ground_grid,
+            color=propercolor,
+            opacity=0.68,
+            stroke_width=3.0,
+            tangent_point=flat_grid_center,
+            outward_offset=0.02,
+        )
+        curved_prime = self.bend_visible_grid_to_sphere(
+            sphere_center,
+            sphere_radius,
+            prime_grid,
+            color=pcolor1,
+            opacity=0.58,
+            stroke_width=2.8,
+            tangent_point=flat_grid_center,
+            outward_offset=0.055,
+        )
+        self.play(*[FadeOut(ogdot, shift=0.08 * IN),
+                FadeOut(y_axis, shift=0.08 * IN),
+                FadeOut(xpax, shift=0.08 * IN),
+                FadeOut(tpax, shift=0.08 * IN),
+                FadeOut(xlabel),
+                FadeOut(tlabel),
+                FadeOut(xplabel),
+                FadeOut(tplabel),
+                FadeOut(lightray)])
+        
+        self.move_camera(
+            phi=0  * DEGREES,
+            # theta=-90 * DEGREES,
+            # gamma=90 * DEGREES,
+            # zoom=0.62,
+            # frame_center=curvature_view_center,
+            added_anims=[
+                # FadeIn(shell),
+                # FadeIn(body),
+                *self.line_by_line_grid_transforms(ground_grid, curved_ground),
+                *self.line_by_line_grid_transforms(prime_grid, curved_prime),
+            ],
+            run_time=3.5,
+            rate_func=smooth,
+        )
+
+        field_glow = VGroup(
+            *[
+                line.copy().set_stroke(width=line.get_stroke_width() + 1.5, opacity=0.18)
+                for line in [*ground_grid, *prime_grid]
+            ]
+        )
+        self.add(field_glow)
+        self.play(field_glow.animate.set_opacity(0.55), run_time=0.8, rate_func=there_and_back)
+        self.wait(2.0)
+
+    def make_flat_spacetime_grid(
+        self,
+        ax,
+        color,
+        opacity=0.25,
+        stroke_width=2,
+        samples=36,
+    ):
+        grid = VGroup()
+        for i in range(1, 7):
+            grid.add(
+                self.sampled_line(
+                    ax.c2p(i, 0),
+                    ax.c2p(i, 7),
+                    color,
+                    opacity,
+                    stroke_width,
+                    samples,
+                )
+            )
+
+        for i in range(1, 7):
+            grid.add(
+                self.sampled_line(
+                    ax.c2p(0, i),
+                    ax.c2p(7, i),
+                    color,
+                    opacity,
+                    stroke_width,
+                    samples,
+                )
+            )
+
+        return grid
+
+    def make_lorentz_grid(
+        self,
+        ax,
+        velocity,
+        color,
+        opacity=0.36,
+        stroke_width=2.2,
+        samples=36,
+        length_ratio=0.94,
+    ):
+        origin = ax.c2p(0, 0)
+        x_axis = self.lorentz_axis_end(ax, velocity, "x") - origin
+        t_axis = self.lorentz_axis_end(ax, velocity, "t") - origin
+        grid = VGroup()
+
+        for frac in np.linspace(1 / 7, 6 / 7, 6):
+            start = origin + t_axis * frac
+            end = start + x_axis * length_ratio
+            grid.add(self.sampled_line(start, end, color, opacity, stroke_width, samples))
+
+        for frac in np.linspace(1 / 7, 6 / 7, 6):
+            start = origin + x_axis * frac
+            end = start + t_axis * length_ratio
+            grid.add(self.sampled_line(start, end, color, opacity, stroke_width, samples))
+
+        return grid
+
+    def lorentz_axis_end(self, ax, velocity, axis):
+        length = 6.2
+        shear = velocity * length
+        stretched = np.sqrt(length**2 + shear**2)
+
+        if axis == "x":
+            return ax.c2p(stretched, shear)
+        if axis == "t":
+            return ax.c2p(shear, stretched)
+        raise ValueError("axis must be 'x' or 't'")
+
+    def make_spherical_grid(
+        self,
+        center,
+        radius,
+        source_grid,
+        color,
+        opacity=0.65,
+        stroke_width=3,
+        tangent_point=None,
+        outward_offset=0,
+    ):
+        if tangent_point is None:
+            tangent_point = center + radius * OUT
+        grid = VGroup()
+        effective_radius = radius + outward_offset
+
+        for source_line in source_grid:
+            samples = max(48, self.point_sample_count(source_line))
+            points = [
+                self.project_flat_point_to_sphere(
+                    source_line.point_from_proportion(alpha),
+                    center,
+                    effective_radius,
+                    tangent_point,
+                )
+                for alpha in np.linspace(0, 1, samples)
+            ]
+            grid.add(
+                self.sampled_curve(
+                    points,
+                    color=color,
+                    opacity=opacity,
+                    stroke_width=stroke_width,
+                )
+            )
+
+        return grid
+
+    def line_by_line_grid_transforms(self, flat_grid, curved_grid):
+        if len(flat_grid) != len(curved_grid):
+            raise ValueError("Flat and curved grids must have the same number of lines.")
+
+        return [
+            Transform(flat_line, curved_line)
+            for flat_line, curved_line in zip(flat_grid, curved_grid)
+        ]
+
+    def bend_visible_grid_to_sphere(
+        self,
+        center,
+        radius,
+        visible_grid,
+        color,
+        opacity=0.65,
+        stroke_width=3,
+        tangent_point=None,
+        outward_offset=0,
+    ):
+        if tangent_point is None:
+            tangent_point = center + radius * OUT
+
+        effective_radius = radius + outward_offset
+        bent_grid = visible_grid.copy()
+
+        for bent_line in bent_grid:
+            bent_line.clear_updaters()
+            bent_line.apply_function(
+                lambda point: self.project_flat_point_to_sphere(
+                    point,
+                    center,
+                    effective_radius,
+                    tangent_point,
+                )
+            )
+            bent_line.set_stroke(color=color, width=stroke_width, opacity=opacity)
+
+        return bent_grid
+
+    def project_flat_point_to_sphere(self, point, center, radius, tangent_point):
+        point = np.array(point)
+        displacement = point - tangent_point
+        planar_radius_squared = displacement[0]**2 + displacement[1]**2
+        if planar_radius_squared >= radius**2:
+            planar_radius_squared = radius**2 * 0.999
+
+        return np.array(
+            [
+                point[0],
+                point[1],
+                center[2] + np.sqrt(radius**2 - planar_radius_squared),
+            ]
+        )
+
+    def sampled_line(self, start, end, color, opacity, stroke_width, samples=36):
+        points = [interpolate(start, end, alpha) for alpha in np.linspace(0, 1, samples)]
+        return self.sampled_curve(points, color=color, opacity=opacity, stroke_width=stroke_width)
+
+    def sampled_curve(self, points, color, opacity, stroke_width):
+        curve = VMobject()
+        curve.set_points_smoothly(points)
+        curve.set_stroke(color=color, width=stroke_width, opacity=opacity)
+        return curve
+
+    def point_sample_count(self, mob):
+        return max(2, len(mob.get_all_points()))
+
