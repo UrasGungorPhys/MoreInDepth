@@ -2358,9 +2358,7 @@ class Geodesics(ThreeDScene):
 
 
 
-# Find camera angles to make the transformation work better for transition from 2d to 3d
-
-
+# Find camera angles to make the transformation work better for transition from 2d to 3d.
 class Flat2Curved(ThreeDScene):
     def construct(self):
         self.camera.background_color = BGtry
