@@ -554,7 +554,7 @@ class RelativeTime(MovingCameraScene):
         ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
         x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
         norm = 7/8
-        self.camera.frame.scale(1.2)
+        self.camera.frame.scale(1.22)
         ax.shift(ORIGIN-ax.c2p(0,0))
         og = ORIGIN
         grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
@@ -564,7 +564,7 @@ class RelativeTime(MovingCameraScene):
         self.camera.frame.scale(0.6)
         ogdot = Dot(ORIGIN).set_color(gndcolor1)
         self.play(Create(ax.x_axis), self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4))
-        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.8), rate_func=rate_functions.ease_out_back, run_time=1.1)
+        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.9), rate_func=rate_functions.ease_out_back, run_time=1.1)
 
         self.play(Create(grid1), run_time=1.2)
         self.play(Create(lightray), run_time=1.2)
@@ -818,6 +818,171 @@ class Simultaneity(MovingCameraScene):
                 Transform(blabel, bplabel), Transform(clabel, cplabel), run_time=3)
 
         self.wait(3)
+
+
+
+class FindLorentzAxes(MovingCameraScene):
+    def construct(self):
+        # Inits
+        self.camera.background_color=BGtry
+
+        ax = Axes(x_range=[0,7,1], y_range=[0,7,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        norm = 7/8
+        self.camera.frame.scale(1.22)
+        ax.shift(ORIGIN-ax.c2p(0,0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0,7], [0,7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8,6.8)).set_color(lightcolor)
+        
+
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ax.x_axis), self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4))
+        self.play(Create(ax.y_axis), self.camera.frame.animate.shift(UP*3.9), rate_func=rate_functions.ease_out_back, run_time=1.1)
+
+        self.play(Create(grid1), run_time=1.2)
+        # self.play(Create(lightray), run_time=1.2)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        self.play(Write(xlabel),Write(tlabel))
+        self.wait(5)
+
+        gndscolor = VibrantPink2
+        adot = Dot().set_color(gndscolor).move_to(ax.c2p(0,0)).set_z_index(1)
+        bdot = Dot().set_color(gndscolor).move_to(ax.c2p(3,0)).set_z_index(1)
+        cdot = Dot().set_color(gndscolor).move_to(ax.c2p(6,0)).set_z_index(1)
+
+        aline = Line(adot.get_center(), ax.c2p(0,6), stroke_width=5).set_color(gndscolor)
+        bline = Line(bdot.get_center(), ax.c2p(3,6), stroke_width=5).set_color(gndscolor)
+        cline = Line(cdot.get_center(), ax.c2p(6,6), stroke_width=5).set_color(gndscolor)
+
+        alabel = Text("A").move_to(aline.get_end()).shift(UP*0.4+LEFT*0.3).set_color(gndscolor).scale(0.9).set_opacity(0.9)
+        blabel = Text("B").move_to(bline.get_end()).shift(UP*0.4).set_color(gndscolor).scale(0.9).set_opacity(0.9)
+        clabel = Text("C").move_to(cline.get_end()).shift(UP*0.4).set_color(gndscolor).scale(0.9).set_opacity(0.9)
+
+
+        abray = DashedLine(og, bline.get_center()).set_color(lightcolor)
+        cbray = DashedLine(cdot.get_center(), bline.get_center()).set_color(lightcolor)
+
+        
+        tpax0 = Arrow(og,ax.c2p(0,6.5))
+        xpax0 = Arrow(og,ax.c2p(6.5, 0))
+        L0 = tpax0.get_length()
+        # t^2 - x^2 = L0^2  means if x = v, t = sqrt(L0^2 + v^2)
+        # tpax = Arrow(og, ax.c2p((0.3*L0), np.sqrt(L0**2 + (0.3*L0)**2)), buff=0).set_color(LightBlue)
+
+        v = 0.3
+        tpax = always_redraw(lambda: Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(pcolor1))
+        xpax = always_redraw(lambda: Arrow(og, ax.c2p(np.sqrt(L0**2 + (v*L0)**2), v*L0), buff=0).set_color(pcolor1))
+
+        xphat = xpax.get_vector()/xpax.get_length()
+        xp_direction = np.array([1,v,0])
+        tp_direction = np.array([v,1,0])
+
+        dl = 1.4
+        tphat = tp_direction*norm*dl
+        # xphat = xp_direction*norm*dl
+
+
+        apline = Line(adot.get_center(), adot.get_center() + tphat*6, stroke_width=5).set_color(pcolor1)
+        bpline = Line(bdot.get_center(), bdot.get_center() + tphat*6, stroke_width=5).set_color(pcolor1)
+        cpline = Line(cdot.get_center(), cdot.get_center() + tphat*6, stroke_width=5).set_color(pcolor1)
+
+        aplabel = Text("A").move_to(apline.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+        bplabel = Text("B").move_to(bpline.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+        cplabel = Text("C").move_to(cpline.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+
+        # self.play(FadeOut(*[aline, bline, cline, abray, cbray]))
+        self.play(adot.animate.set_color(pcolor1), bdot.animate.set_color(pcolor1), cdot.animate.set_color(pcolor1))
+        self.play(Create(apline), Create(bpline), Create(cpline), rate_func=linear, run_time=3)
+        self.play(Write(aplabel), Write(bplabel), Write(cplabel))
+
+        bpcatch = gli(lightray, bpline)
+        cbemit = gli(cpline, xpax)
+
+        bpcatchdot = Dot(bpcatch).set_color(FakeRaspberry).set_z_index(1).scale(1.2)
+        
+        abpray = DashedLine(og, bpcatch).set_color(lightcolor)
+        cbfail = gli(Line(cdot.get_center(), bline.get_center()), bpline)
+        cbpfailray = DashedLine(cdot.get_center(), cbfail).set_color(lightcolor)
+        cbpray = DashedLine(cbemit, bpcatch).set_color(lightcolor)
+        cbemitdot = always_redraw(lambda: Dot(cbpray.get_start()).set_color(FakeRaspberry).set_z_index(1).scale(1.2))
+
+        self.wait(5)
+
+        simrays = AnimationGroup(Create(abpray, rate_func=linear, run_time=2), 
+                                 Succession(Wait(1.41), Create(cbpray, rate_func=linear, run_time=0.59)))
+        
+        self.play(simrays, lag_ratio=0)
+        self.play(Create(bpcatchdot), Create(cbemitdot))
+
+        self.wait(3)
+        self.play(Create(xpax), run_time=2)
+        self.wait(5)
+
+        self.play(adot.animate.set_color(FakeRaspberry).scale(1.2))
+        tpzero1 = MathTex("t' = 0").next_to(tpax.get_start(), DOWN*0.4+LEFT*0.6).set_color(FakeRaspberry).scale(0.9)
+        tpzero2 = MathTex("t' = 0").next_to(cbemitdot.get_center(), DOWN*0.4+RIGHT*0.6).set_color(FakeRaspberry).scale(0.9)
+
+        self.play(Write(tpzero1), Write(tpzero2))
+
+        self.wait(2)
+
+        tp1dots = VGroup()
+        for i in range(1,8):
+            tp1doti = Dot(og+i*xphat).set_color(FakeRaspberry).set_z_index(1)
+            tp1dots.add(tp1doti)
+            self.wait(0.05)
+            self.play(Create(tp1doti), run_time=0.5)
+
+        self.wait(5)
+
+        self.play(FadeOut(*[xpax, tp1dots, tpzero1, tpzero2]))
+        
+        self.wait(2)
+
+        self.wait(10)
+        self.play(FadeOut(*[aplabel, bplabel, cplabel]))
+
+        plabel = Text("p").next_to(bpcatchdot.get_center(), UP*0.25+RIGHT*0.8).set_color(FakeRaspberry).scale(0.9)
+        qlabel = always_redraw(lambda: Text("q").next_to(cbemitdot.get_center(), UP*0.3+RIGHT*0.8).set_color(FakeRaspberry).scale(0.9))
+        self.play(Write(plabel), Write(qlabel))
+        self.wait(3)
+
+        self.play(Indicate(cbpray))
+        self.wait()
+        self.play(Indicate(bpcatchdot))
+        self.play(Indicate(cbemitdot))
+        self.wait()
+        self.wait(2)
+
+        cbpray0 = cbpray.copy()
+
+        # Show the cbfailray to indicate that one has equation of x=-ct+const
+
+        self.play(Transform(cbpray, cbpfailray, rate_func=rate_functions.ease_in_quad), run_time=2)
+        self.wait(3)
+
+        self.play(Transform(cbpray, cbpray0, rate_func=rate_functions.ease_in_quad), run_time=2)
+        self.wait(5)
+
+        self.wait()
+
+        self.wait(2)   
+        self.remove_updater(qlabel)
+        self.play(Create(xpax), FadeOut(*[plabel, qlabel]), run_time=2)
+        self.wait(10)
+        self.remove_updater(cbemitdot)
+        self.play(FadeOut(*[bpline, cpline, abpray, cbpray, bdot, cdot, bpcatchdot, cbemitdot, adot]))
+        self.wait(2)
+        self.play(Transform(apline, tpax), self.camera.frame.animate.shift(UP*0.3))
+        self.wait(2)
+        tplabel = MathTex("t'").next_to(tpax.get_end(), UP*0.8+RIGHT*0.2).set_color(pcolor2)
+        xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.2).set_color(pcolor2)
+        self.play(Write(tplabel), Write(xplabel))
+        self.wait(5)
+
 
 
 # Complete
@@ -3486,3 +3651,53 @@ class Postulate2(Scene):
         self.wait(2)
         self.play(FadeIn(subtitle2))
         self.wait(5)
+
+
+class LaEq1(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = ct").set_color(lightcolor).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq2(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = - ct + const").set_color(lightcolor).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq3(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = vt").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq4(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = vt + L").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq5(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = vt + 2L").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq6(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = -ct - 2L").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq7(Scene):
+    def construct(self):
+        
+        eq1 = MathTex(r"t = \frac{v}{c^2}x").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
