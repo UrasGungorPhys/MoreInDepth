@@ -938,15 +938,34 @@ class FindLorentzAxes(MovingCameraScene):
 
         self.wait(5)
 
-        self.play(FadeOut(*[xpax, tp1dots, tpzero1, tpzero2]))
+        self.play(FadeOut(*[tp1dots, tpzero1, tpzero2]))
+
+        self.play(Indicate(bpcatchdot))
+
+        deltaT = Line(cbemitdot.get_center(), 
+                            gli(Line(cbemitdot.get_center(), cbemit + DOWN*10), ax.x_axis)).set_color(FakeRaspberry).set_stroke(width=5)
+        
+        deltaX = Line(og, deltaT.get_end()).set_color(FakeRaspberry).set_stroke(width=5)
+
+        deltaTlabel = MathTex(r"\Delta t'").next_to(deltaT.get_center(), RIGHT*2).set_color(pcolor1)
+        deltaXlabel = MathTex(r"\Delta x'").next_to(deltaX.get_center(), DOWN*0.5).set_color(pcolor1)
+
+        slopetex = MathTex(r"\text{slope} = \frac{\Delta t'}{\Delta x'}").next_to(deltaT.get_center(), DOWN*0.5).shift(RIGHT*3).set_color(pcolor1)
+        self.play(Indicate(cbemitdot))
+
+        self.play(Create(deltaT), Create(deltaX))
+        self.wait()
+        self.play(Create(deltaTlabel), Write(slopetex), Write(deltaXlabel))
+        self.wait(5)
+        self.play(FadeOut(*[deltaT, deltaTlabel, slopetex]))
         
         self.wait(2)
-
+        self.play(FadeOut(xpax))
         self.wait(10)
         self.play(FadeOut(*[aplabel, bplabel, cplabel]))
 
         plabel = Text("p").next_to(bpcatchdot.get_center(), UP*0.25+RIGHT*0.8).set_color(FakeRaspberry).scale(0.9)
-        qlabel = always_redraw(lambda: Text("q").next_to(cbemitdot.get_center(), UP*0.3+RIGHT*0.8).set_color(FakeRaspberry).scale(0.9))
+        qlabel = always_redraw(lambda: Text("q").next_to(cbemitdot.get_center(), UP*0.3+RIGHT*0.85).set_color(FakeRaspberry).scale(0.9))
         self.play(Write(plabel), Write(qlabel))
         self.wait(3)
 
