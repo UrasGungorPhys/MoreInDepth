@@ -217,7 +217,6 @@ def line_function_intersection(line, func, ax):
     return intersections
 
 
-
 def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.35, spacing=0.35, length_ratio=0.86):
     origin = xp.get_start()
     xphat = xp.get_unit_vector()
@@ -255,7 +254,6 @@ def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.35, spacing=0.35, length_r
         )
 
     return grid
-
 
 
 def reverse_rate_func(func):
@@ -2722,4 +2720,9 @@ class Flat2Curved(ThreeDScene):
 
     def point_sample_count(self, mob):
         return max(2, len(mob.get_all_points()))
+
+
+
+
+
 
