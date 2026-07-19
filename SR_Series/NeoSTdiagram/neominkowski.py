@@ -3718,7 +3718,7 @@ class LaEq5(Scene):
 class LaEq6(Scene):
     def construct(self):
         
-        eq1 = MathTex("x = -ct - 2L").set_color(SteelBlue).scale(1.5)
+        eq1 = MathTex("x = -ct + 2L").set_color(lightcolor).scale(1.5)
         self.add(eq1)
 
 
