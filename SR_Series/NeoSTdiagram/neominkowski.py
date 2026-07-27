@@ -1994,11 +1994,46 @@ class RcaDerivation(MovingCameraScene):
 
         self.play(FadeIn(xplabel), FadeIn(tplabel), run_time=2)
         self.wait()
-        # insert constant t lines here
-        
-
-
         theLT = MathTex(r"t' = \gamma\left(t - \frac{v}{c^2}x\right)").set_color(propercolor).move_to(xct_long.get_end()).shift(RIGHT*3.5+DOWN*2).scale(1.3)
+        # insert constant t lines here
+
+        template = TexTemplate()
+        template.add_to_preamble(r"\usepackage{xcolor}")
+
+        MathTex.set_default(tex_template=template)
+        basetries = "#6B7887"
+        LorentzTransform1 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{x'} = \gamma ("
+            r"\textcolor[HTML]{E8D0B7}{x}-v\textcolor[HTML]{E8D0B7}{t}"
+            r")}"
+        ).move_to(
+            theLT.get_center()).shift(UP).scale(1.3)
+
+        LorentzTransform2 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
+            r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
+            r"\right)}"
+        ).move_to(LorentzTransform1).shift(DOWN*2).scale(1.3)
+
+        LorentzTransform3 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{E8D0B7}{x} = \gamma ("
+            r"\textcolor[HTML]{74C0F3}{x'}+v\textcolor[HTML]{74C0F3}{t'}"
+            r")}"
+        ).move_to(LorentzTransform2).shift(DOWN*2).scale(1.3)
+
+        LorentzTransform4 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{E8D0B7}{t} = \gamma \left("
+            r"\textcolor[HTML]{74C0F3}{t'} + \frac{v}{c^2}\textcolor[HTML]{74C0F3}{x'}"
+            r"\right)}"
+        ).move_to(LorentzTransform3).shift(DOWN*2).scale(1.3)
+
+        LorentzTransforms = [LorentzTransform1, LorentzTransform2, LorentzTransform3, LorentzTransform4]
+
+
         clock3p = makeclock(0, 0.12).move_to(OG+ xphat*5).set_z_index(1)
         clock3s = makeclock(0, 0.12).move_to([clock3p.get_x(), OG[1],0]).set_z_index(1)
         xpt = Dot([clock3s.get_x(), OG[1],0]).set_color(LightBlue)
@@ -2012,25 +2047,29 @@ class RcaDerivation(MovingCameraScene):
         xptcoords1 = MathTex("x = L").move_to(xpt.get_center()).shift(DOWN*0.55+RIGHT*0.6).set_color(gndhighlight)
         xpptcoords = MathTex("t'=0").move_to(xppt.get_center()).shift(DOWN*0.4+RIGHT*0.7).set_color(phighlight)
 
+
+        self.wait(2)
         self.play(Create(xpt), Create(xppt), Create(tpt), run_time=2)
         self.play(Create(xpt_xppt), Create(xppt_tpt), run_time=2)
         self.wait(2)
         self.play(self.camera.frame.animate(run_time=1.5).shift(RIGHT*3))
         self.wait(2)
-        self.play(Write(theLT), run_time=3)
-        self.wait(2)
-        self.play(Write(xptcoords), run_time=2)
+
+        self.play(Write(LorentzTransform1))
+        self.play(Write(LorentzTransform2))
+        self.play(Write(LorentzTransform3))
+        self.play(Write(LorentzTransform4))
+        self.wait(3)
+
+        self.play(FadeOut(*[LorentzTransform1, LorentzTransform3, LorentzTransform4]))
         self.wait()
-        self.play(Transform(xptcoords, xptcoords1),run_time=1.5)
-        self.wait(2)
-        self.play(Write(xpptcoords), run_time=1.5)
-        self.wait(1)
-        self.play(AnimationGroup(Indicate(xpt), Indicate(tpt)))
-        self.wait()
-        self.play(Indicate(xppt))
+        self.play(LorentzTransform2.animate(run_time=0.5, rate_func=rate_functions.ease_in_quad).move_to(theLT.get_center()))
+        self.wait(3)
+        theLT = LorentzTransform2
 
         theLT0 = MathTex("0", r"= \gamma", r"\left(t - \frac{v}{c^2}x\right)").set_color(propercolor).move_to(theLT.get_center()).shift(DOWN*2).scale(1.3)
         theLT0[0].set_color(phighlight)
+
         zerobrace = Brace(theLT0[2]).set_color(gndhighlight)
         iszero = MathTex("0").set_color(gndhighlight).move_to(zerobrace.get_center()).shift(DOWN*0.4)
 
@@ -2043,8 +2082,23 @@ class RcaDerivation(MovingCameraScene):
 
         theLTresult = MathTex("t", "=",  r"\frac{Lv}{c^2}").set_color(propercolor).move_to(theLT1.get_center()).scale(1.5)
 
+        
+        self.wait(2)
+        self.play(Write(xpptcoords), run_time=1.5)
+        self.wait(3)
+
         self.play(Write(theLT0ghost), run_time=2)
         self.play(ReplacementTransform(xpptcoords, theLT0[0]), run_time=2)
+
+        self.wait(2)
+        self.play(Write(xptcoords), run_time=2)
+        self.wait()
+        self.play(Transform(xptcoords, xptcoords1),run_time=1.5)
+        self.wait(2)
+        
+        self.wait(1)
+
+        
         self.wait()
         self.play(ReplacementTransform(theLT0ghost, theLT0))
         self.wait()
@@ -2972,7 +3026,7 @@ class InvariantDemonstration(MovingCameraScene):
         
         xppl = MathTex(r"5m").set_color(SteelBlue).move_to(realworldL.get_center()).shift(UP*0.5+LEFT*0.3)
 
-        eq3 = MathTex(r"{x'}^2", " = ", r"{5m}^2").set_color(SteelBlue
+        eq3 = MathTex(r"{x''}^2", " = ", r"{5m}^2").set_color(SteelBlue
                                             ).move_to([self.camera.frame.get_center()[0],xcoord.get_center()[1],0]).scale(1.2).shift(DOWN*2.2)
         eq3[2].set_color(FunRed)
         
@@ -2990,11 +3044,24 @@ class InvariantDemonstration(MovingCameraScene):
         c3s = [realworldL2, xppcoord, xppcoordlabel, yppcoord, yppcoordlabel, Llabel2, xppl, eq3]
         c3sgp = VGroup(*c3s)
 
+        
         self.wait(5)
         self.play(self.camera.frame.animate.shift(RIGHT*5.8).scale(1.52/1.1),
                   c1sgp.animate.set_opacity(1).shift(LEFT), c2sgp.animate.shift(RIGHT*5.8).set_opacity(1),
                   c3sgp.animate.shift(RIGHT*13.5))
-        self.wait()
+        
+        eq1eq = MathTex("x^2 + y^2 = ").set_color(LemonOrange
+                                                           ).move_to(eq2.get_center()).scale(1.3).shift(LEFT*3.5)
+       
+        eq2eq = MathTex("{x'}^2 + {y'}^2 = ").set_color(GreenoughDark
+                                                           ).move_to(eq2.get_center()).scale(1.3)
+        eq3eq = MathTex("{x''}^2 + {y''}^2").set_color(SteelBlue
+                                                           ).move_to(eq2.get_center()).scale(1.3).shift(RIGHT*3.5)
+       
+
+        self.wait(3)
+        self.play(Transform(eq1, eq1eq), Transform(eq2, eq2eq), Transform(eq3, eq3eq), rate_func=rate_functions.ease_in_quad)
+        self.wait(5)
         
         
 
