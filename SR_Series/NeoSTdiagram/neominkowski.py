@@ -21,6 +21,7 @@ GoodOrange= ManimColor.from_hex("#E53D00")
 Salmon= ManimColor.from_hex("#C73E1D")
 PastelRed= ManimColor.from_hex("#9E2B25")
 SteelBlue = ManimColor.from_hex("#3F88C5")
+SteelBlueDark = ManimColor.from_hex("#2F618B")
 Samoyed = ManimColor.from_hex("#E0E2DB")
 NeonOrange = ManimColor.from_hex("#F9823C")
 DarkPurple = ManimColor.from_hex("#2f3061")
@@ -3110,18 +3111,22 @@ class InvariantHyperbolae(MovingCameraScene):
         campos0 = self.camera.frame.get_center()
 
         
-        ll = 6  # axis lengths to draw
-        axrange = 10  # coordinate ranges
+        ll = 8  # axis lengths to draw
+        axrange = 7  # coordinate ranges
         norm = ll/axrange  # normalize any distance to fit
         pcolor=BLUE_C  # Color to use for the primed axes
 
         # Stationary axes:
 
-        ax = Axes(x_range=[0,axrange,1], y_range=[0,axrange,1], 
-        x_length=ll, y_length=ll,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        # ax = Axes(x_range=[0,axrange,1], y_range=[0,axrange,1], 
+        # x_length=ll, y_length=ll,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
 
-
-        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        ax = Axes(x_range=[0,8,1], y_range=[0,8,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":5}).set_color(gndcolor1)
+        norm = 7/8
+        self.camera.frame.scale(1.2)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
 
         xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(axrange-0.2,axrange-0.2)).set_color(lightcolor)
         xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(axrange-0.2,axrange-0.2)).set_color(lightcolor)
@@ -3132,11 +3137,11 @@ class InvariantHyperbolae(MovingCameraScene):
         xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
         that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
 
-        xpi = Arrow(start=OG, end=OG+10*xhat, buff=0).set_color(pcolor1)
-        tpi = Arrow(start=OG, end=OG+10*that, buff=0).set_color(pcolor1)
+        xpi = Arrow(start=OG, end=OG+8*xhat, buff=0).set_color(pcolor1)
+        tpi = Arrow(start=OG, end=OG+8*that, buff=0).set_color(pcolor1)
 
-        xp0 = Arrow(start=OG, end=OG+10*xhat, buff=0).set_color(pcolor1).set_opacity(0)
-        tp0 = Arrow(start=OG, end=OG+10*that, buff=0).set_color(pcolor1).set_opacity(0)
+        xp0 = Arrow(start=OG, end=OG+8*xhat, buff=0).set_color(pcolor1).set_opacity(0)
+        tp0 = Arrow(start=OG, end=OG+8*that, buff=0).set_color(pcolor1).set_opacity(0)
 
 
         # Lorentz axes
@@ -3190,7 +3195,7 @@ class InvariantHyperbolae(MovingCameraScene):
         # xpu_Lpt = Dot(gndax.c2p(*gl_stinterval(xpu, properL))).set_color(propercolor)
         
         # Plays!
-        self.play(Create(ax), Create(ax_labels), run_time=1)
+        self.play(Create(ax), Create(xlabel), Create(tlabel), run_time=1)
         self.play(AnimationGroup(Create(xct)), run_time=2)
         self.bring_to_front(ax)
         metricwrong = MathTex(r"x^2 + y^2 = s^2").next_to(ax.x_axis.get_center(), UP).shift(UP*3.8).set_color(Vanilla).set_opacity(0.8).scale(1.8)
@@ -3212,9 +3217,9 @@ class InvariantHyperbolae(MovingCameraScene):
         self.wait(0.5)
         # self.play(FadeIn(Ldots))
 
-        xp1, tp1, xplabel1, tplabel1 = lorentz_axifier(0.25, OG, length=6.5)
-        xp2, tp2, xplabel2, tplabel2 = lorentz_axifier(0.50, OG, length=7.3)
-        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=8.5)
+        xp1, tp1, xplabel1, tplabel1 = lorentz_axifier(0.25, OG, length=8.5)
+        xp2, tp2, xplabel2, tplabel2 = lorentz_axifier(0.50, OG, length=9.3)
+        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=10.3)
         xp4, tp4, xplabel4, tplabel4 = lorentz_axifier(0.85, OG, length=11)
         vtracker = ValueTracker(0.00)
         vlabelpos = Dot().move_to(xp0.get_end()).shift(UP*0.8+LEFT).scale(0.8).set_opacity(0)
@@ -3252,8 +3257,8 @@ class InvariantHyperbolae(MovingCameraScene):
         # self.wait(2)
         # self.play(FadeOut(*[Ldots, vl]))
         # to understand exactly what this means, let's keep track of one point, call it a distance L down here.
-        self.play(Transform(xpi, xp0), Transform(tpi, tp0), Transform(xct, xct0),
-                  self.camera.frame.animate.scale(0.8).shift(LEFT*0.9+DOWN),run_time=1.5)
+        self.play(Transform(xpi, xp0), Transform(tpi, tp0), Transform(xct, xct0), run_time=1.5)
+                #   self.camera.frame.animate.scale(0.8).shift(LEFT*0.9+DOWN),run_time=1.5)
 
         L4x = Dot(ax.c2p(*gl_stinterval(xpi, 5))).set_z_index(1)
         L4t = Dot(ax.c2p(*gl_sxinterval(tpi, 5))).set_color(SkyBlue).set_z_index(1)
@@ -3265,10 +3270,11 @@ class InvariantHyperbolae(MovingCameraScene):
         
 
         self.wait(2)
-
-        spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,10.4,0.01]).set_color(NewOrange2)
-        timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,9.11,0.01]).set_color(NewOrange2)
-
+        sx = ax.p2c(xp4.get_end())[0]
+        tx = ax.p2c(tp4.get_end())[0]
+        spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,sx,0.01]).set_color(NewOrange2) # 10.4
+        timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,tx,0.01]).set_color(NewOrange2) # 9.11
+ 
         self.play(Create(spacelike_invariant_hyperbola), run_time=2)
         self.play(Create(timelike_invariant_hyperbola), run_time=2)
         tl1 = spacelike_invariant_hyperbola
@@ -3298,10 +3304,10 @@ class InvariantHyperbolae(MovingCameraScene):
         xp2.set_color(pcolor2)
         tp2.set_color(pcolor2)
 
-        L4xppplabel = MathTex("x'''").move_to(xp3.get_end()).shift(RIGHT*0.1+UP*0.45).set_color(phighlight)
-        L4tppplabel = MathTex("t'''").move_to(tp3.get_end()).shift(RIGHT*0.3).set_color(phighlight)
-        xp3.set_color(phighlight)
-        tp3.set_color(phighlight)
+        L4xppplabel = MathTex("x'''").move_to(xp3.get_end()).shift(RIGHT*0.1+UP*0.45).set_color(SteelBlueDark)
+        L4tppplabel = MathTex("t'''").move_to(tp3.get_end()).shift(RIGHT*0.3).set_color(SteelBlueDark)
+        xp3.set_color(SteelBlueDark)
+        tp3.set_color(SteelBlueDark)
 
         self.wait(3)
         self.play(Create(xp1), Create(tp1), L4x.animate.set_color(PlasticPink), run_time=2)
@@ -3318,14 +3324,14 @@ class InvariantHyperbolae(MovingCameraScene):
         self.wait(2)
 
         # Draw 2 more
-        spacelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 - 3**2), x_range=[3,10,0.01]).set_color(FunRed)
-        timelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 + 3**2), x_range=[0,9.53,0.01]).set_color(FunRed)
+        spacelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 - 3**2), x_range=[3,sx,0.01]).set_color(FunRed)
+        timelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 + 3**2), x_range=[0,tx,0.01]).set_color(FunRed)
         tl0 = spacelike_invariant_hyperbola0
         sl0 = timelike_invariant_hyperbola0
         
 
-        spacelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 - 7**2), x_range=[7,11,0.01]).set_color(LemonOrange)
-        timelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 + 7**2), x_range=[0,8.48,0.01]).set_color(LemonOrange)
+        spacelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 - 7**2), x_range=[7,sx,0.01]).set_color(LemonOrange)
+        timelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 + 7**2), x_range=[0,tx,0.01]).set_color(LemonOrange)
         tl2 = spacelike_invariant_hyperbola2
         sl2 = timelike_invariant_hyperbola2
         self.play(FadeOut(*[L4xp, L4xpp, L4xppp, L4tp, L4tpp, L4tppp, L4x, L4t,
@@ -3339,14 +3345,28 @@ class InvariantHyperbolae(MovingCameraScene):
         axC = Axes(x_range=[0,8,1], y_range=[0,8,1], 
         x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(propercolor)
 
-        axCN = Axes(x_range=[-8,8,1], y_range=[-8,8,1], 
-        x_length=16, y_length=16,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(propercolor)
+        axCN = Axes(x_range=[-5,5,1], y_range=[-5,5,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":2.5}).set_color(propercolor)
+
+        axCNL = Axes(x_range=[-8,8,1], y_range=[-8,8,1], 
+        x_length=16, y_length=16,axis_config={"include_ticks": False, "stroke_width":5}).set_color(propercolor)
+
+        rot_ax = axCNL.copy()
+        # rot_ax.rotate(angle=PI/5, about_point=axCNL.c2p(0,0)).set_color(pcolor1)
+
         axC.shift(OG - axC.c2p(0,0))
         axCN.shift(OG - axCN.c2p(0,0))
+        axCNL.shift(OG - axCNL.c2p(0,0))
+
         axCN.x_axis.add_tip(at_start=True)
         axCN.y_axis.add_tip(at_start=True)
-        ax_labelx = MathTex("x").move_to(axC.x_axis.get_end()).shift(UP+LEFT*0.4).set_color(propercolor)
-        ax_labely = MathTex("y").move_to(axC.y_axis.get_end()).shift(DOWN*0.4+RIGHT).set_color(propercolor)
+        axCNL.x_axis.add_tip(at_start=True)
+        axCNL.y_axis.add_tip(at_start=True)
+
+        ax_labelx = MathTex("x").move_to(axCN.x_axis.get_end()).shift(UP*0.5+LEFT*0.4).set_color(propercolor)
+        ax_labely = MathTex("y").move_to(axCN.y_axis.get_end()).shift(DOWN*0.4+RIGHT*0.5).set_color(propercolor)
+        ax_labelx1 = MathTex("x").move_to(axCNL.x_axis.get_end()).shift(UP*0.4+RIGHT*0.3).set_color(propercolor).scale(1.3)
+        ax_labely1 = MathTex("y").move_to(axCNL.y_axis.get_end()).shift(DOWN*0.4+RIGHT*0.6).set_color(propercolor).scale(1.3)
         
 
         arc0b = Arc(radius=3, angle=PI/4, arc_center=axC.c2p(0,0)).set_color(FunRed)
@@ -3382,9 +3402,10 @@ class InvariantHyperbolae(MovingCameraScene):
         tp3.set_color(SchoolBus)
 
         self.play(FadeOut(hyperbola_eqq), run_time=2)
-        self.play(self.camera.frame.animate(run_time=2).scale(1.2).shift(RIGHT*0.7))
+        self.play(self.camera.frame.animate(run_time=2).scale(1.2*0.8).shift(RIGHT*0.7))
 
-        self.play(ReplacementTransform(ax, axC), ReplacementTransform(ax_labels, VGroup(ax_labelx, ax_labely)))
+        self.play(ReplacementTransform(ax, axC),
+                  ReplacementTransform(VGroup(xlabel, tlabel), VGroup(ax_labelx, ax_labely)))
         
         # self.wait(2)
         # self.play(ReplacementTransform(sl0, arc0t), ReplacementTransform(tl0, arc0b),
@@ -3393,23 +3414,24 @@ class InvariantHyperbolae(MovingCameraScene):
         self.play(FadeOut(*[sl0, sl1, sl2, tl0, tl1, tl2, xct]))
         self.wait(5)
 
-        # Switching to circle demonstration
-    
+        # Switching to circle demonstration.   ############################################################################################
+        np.random.seed(353)
 
-        self.play(ReplacementTransform(axC, axCN), self.camera.frame.animate.scale(2).move_to(axCN.c2p(0,0)))
-        self.play(Create(fullarc0), Create(fullarc1), Create(fullarc2), lag_ratio=0.3)
+        self.play(ReplacementTransform(axC, axCN), self.camera.frame.animate.scale(1.3).move_to(axCN.c2p(0,0)))
+        self.play(Create(fullarc0), run_time=1.5)
+        
+        
         self.wait(3)
 
         # get rand rotated arrows
         arrows = []
 
-        arrow_intersections = [] # find intersections with first circle
         for i in range(10):
-            theta = random.uniform(0, TAU)
+            theta = random.uniform(0, 2*PI)
 
             arrow = Arrow(
                 start=axCN.c2p(0, 0),
-                end=axCN.c2p(7, 0),
+                end=axCN.c2p(5.5, 0),
                 buff=0,
                 stroke_width=3,
                 max_tip_length_to_length_ratio=0.08,
@@ -3431,24 +3453,183 @@ class InvariantHyperbolae(MovingCameraScene):
             intersection_dots.append(
                 Dot(
                     point=point,
-                    radius=0.2,
-                ).set_color(phighlight)
+                    radius=0.1,
+                ).set_color(gndhighlight)
+            )
+        
+
+        
+        for i in range(len(arrows)):
+            self.play(Create(arrows[i], run_time=0.2))
+
+        for i in range(len(arrows)):  
+            self.play(Create(intersection_dots[i]), run_time=0.2)
+        
+
+        self.wait(5)
+
+        self.play(FadeOut(*arrows), FadeOut(*intersection_dots))
+        self.wait(2)
+        self.play(ReplacementTransform(axCN, axCNL), Transform(ax_labelx, ax_labelx1), Transform(ax_labely, ax_labely1),
+                  self.camera.frame.animate.scale(1.75))
+        self.wait(2)
+        self.play(Create(fullarc1), run_time=1.5)
+        self.wait()
+        self.play(Create(fullarc2), run_time=1.5)
+        self.wait()
+        
+
+        # intersection dots for new circles
+        arrows1 = []
+
+        for i in range(10):
+            theta = random.uniform(0, 2*PI)
+
+            arrow = Arrow(
+                start=axCN.c2p(0, 0),
+                end=axCN.c2p(10, 0),
+                buff=0,
+                stroke_width=3,
+                max_tip_length_to_length_ratio=0.08,
+                color=propercolor,
+            ).set_opacity(0)
+            
+
+            arrow.rotate(theta, about_point=axCN.c2p(0, 0))
+            arrows1.append(arrow)
+
+        arrows2 = []
+
+        for i in range(10):
+            theta = random.uniform(0, 2*PI)
+
+            arrow = Arrow(
+                start=axCN.c2p(0, 0),
+                end=axCN.c2p(10, 0),
+                buff=0,
+                stroke_width=3,
+                max_tip_length_to_length_ratio=0.08,
+                color=propercolor,
+            ).set_opacity(0)
+            
+
+            arrow.rotate(theta, about_point=axCN.c2p(0, 0))
+            arrows2.append(arrow)
+
+
+        intersection_dots1 = []
+        for arrow in arrows1:
+            direction = arrow.get_end() - arrow.get_start()
+            direction /= np.linalg.norm(direction)   # unit vector
+
+            point = arrow.get_start() + 5 * direction
+
+            intersection_dots1.append(
+                Dot(
+                    point=point,
+                    radius=0.1,
+                ).set_color(NeonOrange)
+            )
+
+        intersection_dots2 = []
+        for arrow in arrows2:
+            direction = arrow.get_end() - arrow.get_start()
+            direction /= np.linalg.norm(direction)   # unit vector
+
+            point = arrow.get_start() + 7 * direction
+
+            intersection_dots2.append(
+                Dot(
+                    point=point,
+                    radius=0.1,
+                ).set_color(PlasticPink)
             )
 
 
 
-        for i in range(len(arrows)):
-            self.play(Create(arrows[i]),run_time=0.7)
-            self.play(Create(intersection_dots[i]), run_time=0.2)
+        for dot in intersection_dots:
+                dot.scale(7)
+                dot.set_opacity(0.25)
 
+        self.play(AnimationGroup(*[dot.animate(rate_func=rate_functions.ease_out_elastic, run_time=0.5).scale(1/4).set_opacity(1) for dot in intersection_dots], lag_ratio=0.3))
+
+
+        for dot in intersection_dots1:
+                dot.scale(7)
+                dot.set_opacity(0.25)
+
+        self.play(AnimationGroup(*[dot.animate(rate_func=rate_functions.ease_out_elastic, run_time=0.5).scale(1/4).set_opacity(1) for dot in intersection_dots1], lag_ratio=0.3))
+
+
+        for dot in intersection_dots2:
+                dot.scale(7)
+                dot.set_opacity(0.25)
+
+
+        self.play(AnimationGroup(*[dot.animate(rate_func=rate_functions.ease_out_elastic, run_time=0.5).scale(1/4).set_opacity(1) for dot in intersection_dots2], lag_ratio=0.3))
+
+
+        self.wait(5)
+        self.play(FadeOut(*intersection_dots))
+        self.play(FadeOut(*intersection_dots1))
+        self.play(FadeOut(*intersection_dots2))
+
+        self.wait(2)
+
+        rot_ax = axCNL.copy()
+        self.play(rot_ax.animate(rate_func=rate_functions.ease_out_elastic, run_time=4).rotate(angle=PI/6.5, about_point=axCNL.c2p(0,0)).set_color(pcolor1)) 
+        self.play(axCNL.animate.set_opacity(0.5))
+        rotxlabel = MathTex("x'").set_color(SteelBlue).move_to(rot_ax.x_axis.get_end()).shift(RIGHT*0.1+UP*0.6).scale(1.3)
+        rotylabel = MathTex("y'").set_color(SteelBlue).move_to(rot_ax.y_axis.get_end()).shift(RIGHT*0.6+UP*0.25).scale(1.3)
+        self.play(Create(rotxlabel), Create(rotylabel))
+
+        self.wait(2)
+        
+
+
+        axintpts = [Dot(axCNL.c2p(0,5)).set_color(Vanilla), 
+                    Dot(axCNL.c2p(5,0)).set_color(Vanilla), 
+                    Dot(axCNL.c2p(0,-5)).set_color(Vanilla), 
+                    Dot(axCNL.c2p(-5,0)).set_color(Vanilla)]
+        
+        rotaxintpts = [always_redraw(lambda: Dot(rot_ax.c2p(0,5)).set_color(SteelBlue)), 
+                    always_redraw(lambda: Dot(rot_ax.c2p(5,0)).set_color(SteelBlue)), 
+                    always_redraw(lambda: Dot(rot_ax.c2p(0,-5)).set_color(SteelBlue)), 
+                    always_redraw(lambda: Dot(rot_ax.c2p(-5,0)).set_color(SteelBlue))]
+        
+        for dot in rotaxintpts:
+                dot.scale(10)
+                dot.set_opacity(0.25)
+
+        self.play(AnimationGroup(*[dot.animate(rate_func=rate_functions.ease_out_elastic, run_time=0.5).scale(1/4).set_opacity(1) for dot in rotaxintpts], lag_ratio=0.3))
+        # self.play(rot_ax.animate(rate_func=smooth).rotate(angle=PI/2, about_point=axCNL.c2p(0,0)))
+        # self.play(rot_ax.animate(rate_func=smooth).rotate(angle=PI/2, about_point=axCNL.c2p(0,0)))
+        # self.play(rot_ax.animate(rate_func=smooth).rotate(angle=PI/2, about_point=axCNL.c2p(0,0)))
+        # self.play(rot_ax.animate(rate_func=smooth).rotate(angle=PI/2, about_point=axCNL.c2p(0,0)))
+        self.play(Rotating(rot_ax, about_point=rot_ax.c2p(0,0), angle=2*PI), run_time=6, rate_func=rate_functions.ease_in_quad)
+
+
+
+        for dot in axintpts:
+                dot.scale(10)
+                dot.set_opacity(0.25)
+
+        self.play(AnimationGroup(*[dot.animate(rate_func=rate_functions.ease_out_elastic, run_time=0.5).scale(1/4).set_opacity(1) for dot in axintpts], lag_ratio=0.3))
 
         
 
-        self.wait(5)
-        self.play(ReplacementTransform(axCN, axC))
-        self.play(FadeOut(*[fullarc0, fullarc1, fullarc2]))
         self.wait(3)
-        # Go back to original scene
+        self.play(FadeOut(*axintpts), FadeOut(rot_ax), FadeOut(*rotaxintpts), FadeOut(*[rotxlabel, rotylabel]))
+
+
+        self.wait(5)
+        self.play(FadeOut(*[fullarc0, fullarc1, fullarc2]))
+        self.play(ReplacementTransform(axCNL, ax), Transform(ax_labelx1, ax_labelx), Transform(ax_labely1, ax_labely),
+                  self.camera.frame.animate.move_to(ax.c2p(4.5,4.5)).scale(0.60))
+        
+
+        self.wait(3)
+        # Go back to original scene #######################################################
         
         self.play(FadeIn(*[xp1, tp1, xp2, tp2, xp3, tp3]))
 
@@ -3490,16 +3671,15 @@ class InvariantHyperbolae(MovingCameraScene):
 
         self.play(FadeOut(*[xp1, tp1, xp2, tp2, xp3, tp3, arc1_intersections, arc2_intersections, arc3_intersections]), run_time=2)
 
-        ax = Axes(x_range=[0,axrange,1], y_range=[0,axrange,1], 
-        x_length=ll, y_length=ll,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        
 
-        spacelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 - 3**2), x_range=[3,10,0.01]).set_color(FunRed)
-        timelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 + 3**2), x_range=[0,9.53,0.01]).set_color(FunRed)
+        spacelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 - 3**2), x_range=[3,sx,0.01]).set_color(FunRed)
+        timelike_invariant_hyperbola0 = ax.plot(lambda x : np.sqrt(x**2 + 3**2), x_range=[0,tx,0.01]).set_color(FunRed)
 
-        spacelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 - 7**2), x_range=[7,11,0.01]).set_color(LemonOrange)
-        timelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 + 7**2), x_range=[0,8.48,0.01]).set_color(LemonOrange)
-        spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,10.4,0.01]).set_color(NewOrange2)
-        timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,9.11,0.01]).set_color(NewOrange2)
+        spacelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 - 7**2), x_range=[7,sx,0.01]).set_color(LemonOrange)
+        timelike_invariant_hyperbola2 = ax.plot(lambda x : np.sqrt(x**2 + 7**2), x_range=[0,tx,0.01]).set_color(LemonOrange)
+        spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,sx,0.01]).set_color(NewOrange2)
+        timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,tx,0.01]).set_color(NewOrange2)
 
         tl1 = spacelike_invariant_hyperbola
         sl1 = timelike_invariant_hyperbola
@@ -3509,12 +3689,8 @@ class InvariantHyperbolae(MovingCameraScene):
         sl2 = timelike_invariant_hyperbola2
 
 
-        
-        
-        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
 
-
-        self.play(ReplacementTransform(axC, ax), ReplacementTransform(VGroup(ax_labelx, ax_labely), ax_labels),
+        self.play(ReplacementTransform(axC, ax), ReplacementTransform(VGroup(ax_labelx, ax_labely), VGroup(xlabel, tlabel)),
                     ReplacementTransform(arc0t, sl0), ReplacementTransform(arc0b, tl0),
                     ReplacementTransform(arc1t, sl1), ReplacementTransform(arc1b, tl1),
                     ReplacementTransform(arc2t, sl2), ReplacementTransform(arc2b, tl2),
