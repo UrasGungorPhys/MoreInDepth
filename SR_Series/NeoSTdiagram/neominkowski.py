@@ -982,12 +982,14 @@ class FindLorentzAxes(MovingCameraScene):
         self.wait(2)
 
         self.play(FadeOut(tpzero), Transform(tp1dots, xplabel))
-        self.play(xplabel.animate.set_color(pcolor2))
-        xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.1).set_color(pcolor2).scale(1.2)
+        self.play(tp1dots.animate.set_color(pcolor2))
+        
+        
         self.wait(3)
 
 
-        fds1 = [bpline, cpline, bpcatchdot, cbemitdot, abpray, cbpray, bdot, cdot,aplabel, bplabel, cplabel, apline]
+
+        fds1 = [bpline, cpline, bpcatchdot, abpray, cbpray, bdot, cdot,aplabel, bplabel, cplabel, apline]
 
 
         # self.play(Indicate(bpcatchdot))
@@ -1003,50 +1005,50 @@ class FindLorentzAxes(MovingCameraScene):
         deltaXlabel = MathTex(r"\Delta x").next_to(bdot.get_center(), DOWN*0.5).set_color(FakeRaspberry)
 
         slopetex = MathTex(r"\text{slope} = \frac{\Delta t}{\Delta x}").move_to(deltaTlabel.get_center()).shift(RIGHT*2.3).set_color(FakeRaspberry)
+        self.wait(2)
         self.play(Indicate(cbemitdot))
         cbemitcoords = MathTex("(x, t)").set_color(FakeRaspberry).move_to(cbemitdot.get_center()).shift(UP*0.5+LEFT*0.3)
+        self.wait()
         self.play(Write(cbemitcoords))
         self.wait(2)
 
         self.play(Create(deltaT), Create(deltaX))
         self.wait()
-        self.play(Create(deltaTlabel), Write(slopetex), Write(deltaXlabel))
-        self.wait(5)
+        self.play(Create(deltaTlabel), Write(deltaXlabel))
 
-        self.play(*(fd.animate.set_opacity(1) for fd in fds1), self.camera.frame.animate.shift(LEFT*2))
-        self.play(FadeOut(*[deltaT, deltaTlabel, slopetex, deltaX, deltaXlabel, cbemitcoords]))
-        
+        self.play(Write(slopetex))
         self.wait(2)
-        self.play(FadeOut(*[xpax, xplabel]))
-    
-        self.wait(10)
-        self.play(FadeOut(*[aplabel, bplabel, cplabel]))
+
+        
+        self.play(FadeOut(*[deltaT, deltaTlabel, slopetex, deltaX, deltaXlabel, cbemitcoords]))
+
+        xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.1).set_color(pcolor2).scale(1.2)
+        
+        
+        self.play(*(fd.animate.set_opacity(1) for fd in fds1), self.camera.frame.animate.shift(LEFT*2))
+        self.wait(2)
+        self.play(Indicate(cbpray))
 
         plabel = Text("p").next_to(bpcatchdot.get_center(), UP*0.25+RIGHT*0.8).set_color(FakeRaspberry).scale(0.9)
         qlabel = always_redraw(lambda: Text("q").next_to(cbemitdot.get_center(), UP*0.3+RIGHT*0.85).set_color(FakeRaspberry).scale(0.9))
-        self.play(Write(plabel), Write(qlabel))
-        self.wait(3)
-
-        self.play(Indicate(cbpray))
-        self.wait()
-        self.play(Indicate(bpcatchdot))
-        self.play(Indicate(cbemitdot))
-        self.wait()
+        self.play(Write(plabel), Write(qlabel), FadeOut(*[xpax, tp1dots, aplabel, bplabel, cplabel]))
         self.wait(2)
 
-        cbpray0 = cbpray.copy()
+        self.play(plabel.animate.scale(1.2).set_color(Greenough).shift(RIGHT*0.1))
+        self.play(Indicate(abpray), Indicate(bpline))
+        self.play(abpray.animate.set_color(Greenough), bpline.animate.set_color(Greenough))
 
-        # Show the cbfailray to indicate that one has equation of x=-ct+const
-
-        self.play(Transform(cbpray, cbpfailray, rate_func=rate_functions.ease_in_quad), run_time=2)
+        self.wait(2)
+        self.play(Indicate(cbpray))
+        self.play(abpray.animate.set_color(lightcolor), bpline.animate.set_color(pcolor1),
+                  cbpray.animate.set_color(Greenough))
+        
         self.wait(3)
+        self.play(cbpray.animate.set_color(lightcolor), plabel.animate.scale(1/1.2).set_color(PlasticPink).shift(LEFT*0.1))
 
-        self.play(Transform(cbpray, cbpray0, rate_func=rate_functions.ease_in_quad), run_time=2)
         self.wait(5)
 
-        self.wait()
-
-        self.wait(2)   
+        
         self.remove_updater(qlabel)
         self.play(Create(xpax), FadeOut(*[plabel, qlabel]), run_time=2)
         self.wait(10)
@@ -4256,6 +4258,12 @@ class LaEq1(Scene):
         eq1 = MathTex("x = ct").set_color(lightcolor).scale(1.5)
         self.add(eq1)
 
+class LaEq1G(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = ct").set_color(Greenough).scale(1.5)
+        self.add(eq1)
+
 
 class LaEq2(Scene):
     def construct(self):
@@ -4275,6 +4283,13 @@ class LaEq4(Scene):
     def construct(self):
         
         eq1 = MathTex("x = vt + L").set_color(SteelBlue).scale(1.5)
+        self.add(eq1)
+
+
+class LaEq4G(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("x = vt + L").set_color(Greenough).scale(1.5)
         self.add(eq1)
 
 
