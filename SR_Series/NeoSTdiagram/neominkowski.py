@@ -854,7 +854,7 @@ class Simultaneityprime(MovingCameraScene):
         self.wait(3)
 
 
-
+# Finish this, finish manim?
 class FindLorentzAxes(MovingCameraScene):
     def construct(self):
         # Inits
@@ -950,18 +950,17 @@ class FindLorentzAxes(MovingCameraScene):
         
         self.play(simrays, lag_ratio=0)
         self.play(Create(bpcatchdot), Create(cbemitdot))
+        self.play(adot.animate.set_color(FakeRaspberry).scale(1.2))
+        self.wait(3)
+        
+        tpzero1 = MathTex("t' = 0").next_to(tpax.get_start(), DOWN*0.4+LEFT*0.6).set_color(FakeRaspberry).scale(0.9)
+        tpzero2 = MathTex("t' = 0").next_to(cbemitdot.get_center(), DOWN*0.4+RIGHT*0.6).set_color(FakeRaspberry).scale(0.9)
+        self.play(Write(tpzero1), Write(tpzero2))
 
         self.wait(3)
         self.play(Create(xpax), run_time=2)
-        self.wait(5)
 
-        self.play(adot.animate.set_color(FakeRaspberry).scale(1.2))
-        tpzero1 = MathTex("t' = 0").next_to(tpax.get_start(), DOWN*0.4+LEFT*0.6).set_color(FakeRaspberry).scale(0.9)
-        tpzero2 = MathTex("t' = 0").next_to(cbemitdot.get_center(), DOWN*0.4+RIGHT*0.6).set_color(FakeRaspberry).scale(0.9)
-
-        self.play(Write(tpzero1), Write(tpzero2))
-
-        self.wait(2)
+        self.wait(3)
 
         tp1dots = VGroup()
         for i in range(1,8):
@@ -970,14 +969,28 @@ class FindLorentzAxes(MovingCameraScene):
             self.wait(0.05)
             self.play(Create(tp1doti), run_time=0.5)
 
-        self.wait(5)
 
-        self.play(FadeOut(*[tp1dots, tpzero1, tpzero2]))
+        tpzero = MathTex("t' = 0").next_to(xpax.get_end(), UP*0.2+RIGHT*0.8).set_color(FakeRaspberry).scale(1.1)
+        
+
+        self.wait(3)
+        self.play(FadeOut(*[tpzero1, tpzero2]))
+        self.play(Write(tpzero))
+
+        xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.1).set_color(FakeRaspberry).scale(1.2)
+
+        self.wait(2)
+
+        self.play(FadeOut(tpzero), Transform(tp1dots, xplabel))
+        self.play(xplabel.animate.set_color(pcolor2))
+        xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.1).set_color(pcolor2).scale(1.2)
+        self.wait(3)
+
 
         fds1 = [bpline, cpline, bpcatchdot, cbemitdot, abpray, cbpray, bdot, cdot,aplabel, bplabel, cplabel, apline]
 
 
-        self.play(Indicate(bpcatchdot))
+        # self.play(Indicate(bpcatchdot))
 
         self.play(*(fd.animate.set_opacity(0.1) for fd in fds1), self.camera.frame.animate.shift(RIGHT*2))
 
@@ -986,11 +999,14 @@ class FindLorentzAxes(MovingCameraScene):
         
         deltaX = Line(og, deltaT.get_end()).set_color(FakeRaspberry).set_stroke(width=5)
 
-        deltaTlabel = MathTex(r"\Delta t'").next_to(deltaT.get_center(), RIGHT*0.6+UP*0.1).set_color(FakeRaspberry)
-        deltaXlabel = MathTex(r"\Delta x'").next_to(bdot.get_center(), DOWN*0.5).set_color(FakeRaspberry)
+        deltaTlabel = MathTex(r"\Delta t").next_to(deltaT.get_center(), RIGHT*0.6+UP*0.1).set_color(FakeRaspberry)
+        deltaXlabel = MathTex(r"\Delta x").next_to(bdot.get_center(), DOWN*0.5).set_color(FakeRaspberry)
 
-        slopetex = MathTex(r"\text{slope} = \frac{\Delta t'}{\Delta x'}").move_to(deltaTlabel.get_center()).shift(RIGHT*2.3).set_color(FakeRaspberry)
+        slopetex = MathTex(r"\text{slope} = \frac{\Delta t}{\Delta x}").move_to(deltaTlabel.get_center()).shift(RIGHT*2.3).set_color(FakeRaspberry)
         self.play(Indicate(cbemitdot))
+        cbemitcoords = MathTex("(x, t)").set_color(FakeRaspberry).move_to(cbemitdot.get_center()).shift(UP*0.5+LEFT*0.3)
+        self.play(Write(cbemitcoords))
+        self.wait(2)
 
         self.play(Create(deltaT), Create(deltaX))
         self.wait()
@@ -998,10 +1014,10 @@ class FindLorentzAxes(MovingCameraScene):
         self.wait(5)
 
         self.play(*(fd.animate.set_opacity(1) for fd in fds1), self.camera.frame.animate.shift(LEFT*2))
-        self.play(FadeOut(*[deltaT, deltaTlabel, slopetex, deltaX, deltaXlabel]))
+        self.play(FadeOut(*[deltaT, deltaTlabel, slopetex, deltaX, deltaXlabel, cbemitcoords]))
         
         self.wait(2)
-        self.play(FadeOut(xpax))
+        self.play(FadeOut(*[xpax, xplabel]))
     
         self.wait(10)
         self.play(FadeOut(*[aplabel, bplabel, cplabel]))
@@ -2415,7 +2431,7 @@ class LengthContraction(MovingCameraScene):
         self.wait(5)
 
 
-# 0%
+# Complete
 class MinkowskiMetric(MovingCameraScene):
 
     def construct(self):
