@@ -3102,7 +3102,7 @@ class InvariantDemonstration(MovingCameraScene):
         self.wait(5)
 
 
-# EST%
+# Complete
 class InvariantHyperbolae(MovingCameraScene):
 
     def construct(self):
@@ -3221,7 +3221,7 @@ class InvariantHyperbolae(MovingCameraScene):
 
         xp1, tp1, xplabel1, tplabel1 = lorentz_axifier(0.25, OG, length=8.5)
         xp2, tp2, xplabel2, tplabel2 = lorentz_axifier(0.50, OG, length=9.3)
-        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=10.3)
+        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=10.7)
         xp4, tp4, xplabel4, tplabel4 = lorentz_axifier(0.85, OG, length=11)
         vtracker = ValueTracker(0.00)
         vlabelpos = Dot().move_to(xp0.get_end()).shift(UP*0.8+LEFT).scale(0.8).set_opacity(0)
@@ -3259,9 +3259,9 @@ class InvariantHyperbolae(MovingCameraScene):
         # self.wait(2)
         # self.play(FadeOut(*[Ldots, vl]))
         # to understand exactly what this means, let's keep track of one point, call it a distance L down here.
-        self.play(Transform(xpi, xp0), Transform(tpi, tp0), Transform(xct, xct0), run_time=1.5)
+        self.play(Transform(xpi, xp0), Transform(tpi, tp0), Transform(xct, xct0), self.camera.frame.animate.shift(RIGHT*1.2).scale(1.2), run_time=1.5)
                 #   self.camera.frame.animate.scale(0.8).shift(LEFT*0.9+DOWN),run_time=1.5)
-
+        
         L4x = Dot(ax.c2p(*gl_stinterval(xpi, 5))).set_z_index(1)
         L4t = Dot(ax.c2p(*gl_sxinterval(tpi, 5))).set_color(SkyBlue).set_z_index(1)
         Llabel = MathTex("L").set_color(Vanilla).move_to(L4x).shift(DOWN*0.5)
@@ -3275,7 +3275,7 @@ class InvariantHyperbolae(MovingCameraScene):
         spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,8.7,0.01]).set_color(NewOrange2)
         tx = ax.p2c(spacelike_invariant_hyperbola.get_end())[1]
         timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,tx,0.01]).set_color(NewOrange2)
- 
+
         self.play(Create(spacelike_invariant_hyperbola), run_time=2)
         self.play(Create(timelike_invariant_hyperbola), run_time=2)
         tl1 = spacelike_invariant_hyperbola
@@ -3286,6 +3286,9 @@ class InvariantHyperbolae(MovingCameraScene):
         hyperbola_eqq = MathTex(r"x^2 - c^2 t^2 = L^2").next_to(spacelike_invariant_hyperbola.get_start(), DOWN).set_color(NewOrange2)
         self.play(ReplacementTransform(Llabel, hyperbola_eqq))
 
+        xp1, tp1, xplabel1, tplabel1 = lorentz_axifier(0.25, OG, length=8.5)
+        xp2, tp2, xplabel2, tplabel2 = lorentz_axifier(0.50, OG, length=9.3)
+        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=10.7)
         L4xp = Dot(ax.c2p(*gl_stinterval(xp1, 5))).set_color(PlasticPink)
         L4tp = Dot(ax.c2p(*gl_sxinterval(tp1, 5))).set_color(SkyBlue)
        
@@ -3411,7 +3414,7 @@ class InvariantHyperbolae(MovingCameraScene):
         tp3.set_color(SchoolBus)
 
         self.play(FadeOut(hyperbola_eqq), run_time=2)
-        self.play(self.camera.frame.animate(run_time=2).scale(1.2*0.8).shift(RIGHT*0.7))
+        self.play(self.camera.frame.animate(run_time=2).scale(1.2*0.8/1.2).shift(LEFT*0.3))
 
         self.play(ReplacementTransform(ax, axC),
                   Transform(xlabel, ax_labelx), Transform(tlabel, ax_labely))
@@ -3427,7 +3430,7 @@ class InvariantHyperbolae(MovingCameraScene):
         np.random.seed(353)
 
         self.play(ReplacementTransform(axC, axCN), Transform(xlabel, ax_labelxn), Transform(tlabel, ax_labelyn),
-                  self.camera.frame.animate.scale(1.3).move_to(axCN.c2p(0,0)))
+                  self.camera.frame.animate.scale(1.2).move_to(axCN.c2p(0,0)))
         self.play(Create(fullarc0), run_time=1.5)
         
         
@@ -3633,7 +3636,7 @@ class InvariantHyperbolae(MovingCameraScene):
         self.wait(5)
         self.play(FadeOut(*[fullarc0, fullarc1, fullarc2]))
         self.play(ReplacementTransform(axCNL, ax),
-                  self.camera.frame.animate.move_to(ax.c2p(4.5,4.5)).scale(0.60))
+                  self.camera.frame.animate.move_to(ax.c2p(4.5,4.5)).scale(0.60*1.3/1.2))
         
 
         self.wait(3)
@@ -3702,7 +3705,32 @@ class InvariantHyperbolae(MovingCameraScene):
         self.play(Create(arc0t), Create(arc0b))
         self.play(Create(arc1t), Create(arc1b))
         self.play(Create(arc2t), Create(arc2b))
-        self.wait()
+        self.wait(3)
+
+
+        # ADD INTERSECTIONS HERE, METRIC EQ
+        randarrows = VGroup()
+        for i in range(6):
+            arrow0 = Arrow(start=OG, end=OG + 8.8*RIGHT, buff=0, stroke_width=2.5).set_color(pcolor1)
+            ang = np.random.uniform(PI/25, PI/2.05)
+            arrowi = arrow0.copy()
+            arrowi.rotate(angle=ang, about_point=OG)
+            randarrows.add(arrowi)
+
+        pmetric1 = MathTex("x^2 + y^2 = R^2").move_to(arc0b.get_start()).shift(DOWN*0.5).set_color(FunRed)
+        pmetric2 = MathTex("x^2 + y^2 = 2R^2").move_to(arc1t.get_end()).shift(LEFT*2).set_color(NewOrange2)
+        pmetric3 = MathTex("x^2 + y^2 = 3R^2").move_to(arc2b.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
+
+
+        self.play(Create(randarrows))
+        self.play(Write(pmetric1), Write(pmetric2), Write(pmetric3))
+
+        self.wait(3)
+        self.play(FadeOut(randarrows))
+
+        self.play(FadeOut(*[pmetric1, pmetric2, pmetric3]))
+
+        self.wait(5)
 
 
 
@@ -3710,8 +3738,77 @@ class InvariantHyperbolae(MovingCameraScene):
                     ReplacementTransform(arc0t, sl0), ReplacementTransform(arc0b, tl0),
                     ReplacementTransform(arc1t, sl1), ReplacementTransform(arc1b, tl1),
                     ReplacementTransform(arc2t, sl2), ReplacementTransform(arc2b, tl2),
-                    Create(xct),
-            self.camera.frame.animate.shift(LEFT*0.5+DOWN*0.5).scale(0.9), run_time=3)
+                    Create(xct), run_time=3)
+        
+
+        # ADD INTERSECTIONS HERE, METRIC EQ
+
+        metric1 = MathTex("x^2 - (ct)^2 = S^2").move_to(tl0.get_start()).shift(DOWN*0.5).set_color(FunRed)
+        metric2 = MathTex("x^2 - (ct)^2 = 2S^2").move_to(sl1.get_start()).shift(LEFT*2).set_color(NewOrange2)
+        metric3 = MathTex("x^2 - (ct)^2 = 3S^2").move_to(tl2.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
+
+
+        randarrows = VGroup()
+        for i in range(6):
+            ang = np.random.uniform(PI/25, PI/2.05)
+            length_adj = 1.5-np.abs(PI/4 - ang)
+            arrow0 = Arrow(start=OG, end=OG + 8.8*RIGHT*length_adj, buff=0, stroke_width=2.5).set_color(pcolor1)
+            arrowi = arrow0.copy()
+            arrowi.rotate(angle=ang, about_point=OG)
+            randarrows.add(arrowi)
+
+        
+        self.play(Create(randarrows))
+        self.play(Write(metric1), Write(metric2), Write(metric3))
+
+        self.wait(3)
+        self.play(FadeOut(randarrows))
+        self.play(FadeOut(*[metric1, metric2, metric3]))
+        
+        self.wait(3)
+        # ADD A LORENTZ AXIS TRANSFORMATION HERE
+        xp0 = Arrow(start=OG, end=OG + 8*RIGHT, buff=0, stroke_width=3.5).set_color(pcolor1)
+        tp0 = Arrow(start=OG, end=OG + 8*UP, buff=0, stroke_width=3.5).set_color(pcolor1)
+
+        xp1, tp1, xplabel1, tplabel1 = lorentz_axifier(0.25, OG, length=8.5)
+        xp2, tp2, xplabel2, tplabel2 = lorentz_axifier(0.50, OG, length=9.8)
+        xp3, tp3, xplabel3, tplabel3 = lorentz_axifier(0.75, OG, length=11.3)
+        L4xp = Dot(ax.c2p(*gl_stinterval(xp1, 5))).set_color(PlasticPink)
+        L4tp = Dot(ax.c2p(*gl_sxinterval(tp1, 5))).set_color(SkyBlue)
+       
+        L4xpp = Dot(ax.c2p(*gl_stinterval(xp2, 5))).set_color(PlasticPink)
+        L4tpp = Dot(ax.c2p(*gl_sxinterval(tp2, 5))).set_color(SkyBlue)
+        
+        L4xppp = Dot(ax.c2p(*gl_stinterval(xp3, 5))).set_color(PlasticPink)
+        L4tppp = Dot(ax.c2p(*gl_sxinterval(tp3, 5))).set_color(SkyBlue)
+        
+        L4xplabel = MathTex("x'").move_to(xp1.get_end()).shift(RIGHT*0.1+UP*0.45).set_color(pcolor1)
+        L4tplabel = MathTex("t'").move_to(tp1.get_end()).shift(RIGHT*0.3).set_color(pcolor1)
+        xp1.set_color(pcolor1)
+        tp1.set_color(pcolor1)
+
+        L4xpplabel = MathTex("x''").move_to(xp2.get_end()).shift(RIGHT*0.1+UP*0.45).set_color(pcolor2)
+        L4tpplabel = MathTex("t''").move_to(tp2.get_end()).shift(RIGHT*0.3).set_color(pcolor2)
+        xp2.set_color(pcolor2)
+        tp2.set_color(pcolor2)
+
+        L4xppplabel = MathTex("x'''").move_to(xp3.get_end()).shift(RIGHT*0.1+UP*0.45).set_color(SteelBlueDark)
+        L4tppplabel = MathTex("t'''").move_to(tp3.get_end()).shift(RIGHT*0.3).set_color(SteelBlueDark)
+        xp3.set_color(SteelBlueDark)
+        tp3.set_color(SteelBlueDark)
+
+        self.play(Create(xp0), Create(tp0))
+        self.wait(2)
+        self.play(Transform(xp0, xp1), Transform(tp0, tp1), run_time=2.5)
+        self.wait()
+        self.play(Write(L4xplabel), Write(L4tplabel))
+
+        self.wait(3)
+        self.play(Create(xp2), Create(tp2))
+        self.play(Write(L4xpplabel), Write(L4tpplabel))
+        self.wait(2)
+        self.play(Create(xp3), Create(tp3))
+        self.play(Write(L4xppplabel), Write(L4tppplabel))
         
         self.wait(5)
 
