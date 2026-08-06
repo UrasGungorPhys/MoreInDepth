@@ -2575,7 +2575,7 @@ class MinkowskiMetric(MovingCameraScene):
         self.play(FadeIn(lplabel), FadeIn(llabel))
         self.wait(2)
 
-        prjlabel = MathTex("T").move_to(lprjx.get_center()).shift(RIGHT*0.3+UP*0.1).set_color(gndcolor1)
+        prjlabel = MathTex("T").move_to(lprjx.get_center()).shift(RIGHT*0.4+UP*0.1).set_color(gndcolor1).scale(1.2)
         pythtext = MathTex(r"L^2 + T^2", " = ", r"{L'}^2").set_color(basec).move_to(t4.get_center()).shift(DOWN*1.5).scale(1.3)
         pythtext[0].set_color(gndcolor1)
         pythtext[2].set_color(pcolor1)
@@ -2602,20 +2602,94 @@ class MinkowskiMetric(MovingCameraScene):
         ict2[3].set_color(pcolor1)
 
 
-        self.play(Write(ict))
+        # self.play(Write(ict))
 
-        self.wait(3)
-        self.play(Transform(ict, ict2))
+        # self.wait(3)
+        # self.play(Transform(ict, ict2))
+        t4sm = MathTex(r"L", ">", "L' ", r"\,\, !!! ").set_color(basec).move_to(t4s.get_center()).scale(1.2)
+        t4sm[0].set_color(gndcolor1)
+        t4sm[2].set_color(pcolor1)
+        t4sm[3].set_color(Greenough).scale(1.05)
 
-        mkmetric = MathTex("x^2 - ", "(ct)^2", " = ", " {x'} ^2").set_color(gndcolor1).move_to(t4s.get_center()).shift(DOWN*1.5).scale(1.2)
-        mkmetric[1].set_color(SchoolBus)
+        
+
+        self.wait(5)
+        self.play(FadeOut(*[ltext, t4]))
+        self.play(pythtext.animate().set_color(FunRed))
+        self.play(pythtext.animate().set_opacity(0.2))
+        self.play(Transform(t4s, t4sm))
+
+        mkmetric = MathTex("x^2 - ", "(ct)^2", " = ", " {x'} ^2").set_color(gndcolor1).move_to(t4s.get_center()).shift(DOWN*1.5).scale(1.3)
+        mkmetric[1].set_color(LemonOrange)
         mkmetric[2].set_color(basec)
         mkmetric[3].set_color(pcolor1)
 
+        self.play(Write(mkmetric), prjlabel.animate.set_color(LemonOrange).scale(1.1))
+
+        self.play(pythtext.animate.shift(UP*2.5), t4s.animate.shift(UP*2.6), mkmetric.animate.shift(UP*2))
+        # self.play(Transform(ict, mkmetric))
+        self.wait()
+
+    
+        self.wait(3)
+
+
+
+        Lprimeeq = MathTex(r"{L'}^2", " = L^2", r" - (cT)^2").set_color(pcolor1).move_to(mkmetric.get_center()).shift(DOWN*1.5).scale(1.2)
+        Lprimeeq[1].set_color(gndcolor1)
+        Lprimeeq[2].set_color(LemonOrange)
+
+        self.play(Write(Lprimeeq))
+
         self.wait(5)
-        self.play(Transform(ict, mkmetric))
+
+
+        # L4x = Dot(ax.c2p(*gl_stinterval(xpi, 5))).set_z_index(1)
+        # L4t = Dot(ax.c2p(*gl_sxinterval(tpi, 5))).set_color(SkyBlue).set_z_index(1)
+        # Llabel = MathTex("L").set_color(Vanilla).move_to(L4x).shift(DOWN*0.5)
+
+
+        # self.play(FadeIn(*[L4x, L4t]))
+        # self.play(Write(Llabel))
+
         
+        # self.play(FadeOut(*[]))
+        self.wait(2)
+        spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5.5**2), x_range=[5.5,7,0.01]).set_color(NewOrange2)
+        tx = ax.p2c(spacelike_invariant_hyperbola.get_end())[1]
+        # timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5.5**2), x_range=[0,tx,0.01]).set_color(NewOrange2)
+        # self.play(Create(timelike_invariant_hyperbola), run_time=2)
+        tl1 = spacelike_invariant_hyperbola
+        # sl1 = timelike_invariant_hyperbola
         
+        self.wait(2)
+
+        hyperbola_eqq = MathTex(r"x^2 - c^2 t^2 = L^2").next_to(spacelike_invariant_hyperbola.get_start(), DOWN).set_color(NewOrange2).scale(1.1)
+
+        self.play(Write(hyperbola_eqq))
+        self.wait(2)
+        self.play(Create(spacelike_invariant_hyperbola), prjlabel.animate.shift(RIGHT*0.2), run_time=2)
+
+        hyp2 = ax.plot(lambda x : np.sqrt(x**2 - 4.5**2), x_range=[4.5,6.47,0.01]).set_color(NewOrange2)
+        hyp3 = ax.plot(lambda x : np.sqrt(x**2 - 3.5**2), x_range=[3.5,6.029,0.01]).set_color(NewOrange2)
+        hyp4 = ax.plot(lambda x : np.sqrt(x**2 - 2.5**2), x_range=[2.5,5.71,0.01]).set_color(NewOrange2)
+        hyp5 = ax.plot(lambda x : np.sqrt(x**2 - 1.5**2), x_range=[1.5,5.48,0.01]).set_color(NewOrange2)
+        # hyp6 = ax.plot(lambda x : np.sqrt(x**2 - 0.65**2), x_range=[0.65,5.36,0.01]).set_color(NewOrange2)
+        hyps = VGroup(hyp2, hyp3, hyp4, hyp5)
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(6.5,6.5)).set_color(lightcolor)
+
+        thyp1 = ax.plot(lambda x : np.sqrt(x**2 + 5.5**2), x_range=[0,tx,0.01]).set_color(NewOrange2)
+        thyp2 = ax.plot(lambda x : np.sqrt(x**2 + 4.5**2), x_range=[0,ax.p2c(hyp2.get_end())[1],0.01]).set_color(NewOrange2)
+        thyp3 = ax.plot(lambda x : np.sqrt(x**2 + 3.5**2), x_range=[0,ax.p2c(hyp3.get_end())[1],0.01]).set_color(NewOrange2)
+        thyp4 = ax.plot(lambda x : np.sqrt(x**2 + 2.5**2), x_range=[0,ax.p2c(hyp4.get_end())[1],0.01]).set_color(NewOrange2)
+        thyp5 = ax.plot(lambda x : np.sqrt(x**2 + 1.5**2), x_range=[0,ax.p2c(hyp5.get_end())[1],0.01]).set_color(NewOrange2)
+        # thyp6 = ax.plot(lambda x : np.sqrt(x**2 + 0.65**2), x_range=[0.65,ax.p2c(hyp6.get_end()[1]),0.01]).set_color(NewOrange2)
+        thyps = VGroup(thyp2, thyp3, thyp4, thyp5, thyp1)
+        # self.play(Create(hyp2), Create(hyp3), Create(hyp4))
+        self.play(Transform(hyperbola_eqq, hyps), Create(xct), rate_func=rate_functions.ease_in_quad)
+
+        self.wait(2)
+        self.play(Create(thyps))
 
         self.wait(5)
 
@@ -3275,7 +3349,6 @@ class InvariantHyperbolae(MovingCameraScene):
         spacelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 - 5**2), x_range=[5,8.7,0.01]).set_color(NewOrange2)
         tx = ax.p2c(spacelike_invariant_hyperbola.get_end())[1]
         timelike_invariant_hyperbola = ax.plot(lambda x : np.sqrt(x**2 + 5**2), x_range=[0,tx,0.01]).set_color(NewOrange2)
-
         self.play(Create(spacelike_invariant_hyperbola), run_time=2)
         self.play(Create(timelike_invariant_hyperbola), run_time=2)
         tl1 = spacelike_invariant_hyperbola
@@ -3718,8 +3791,8 @@ class InvariantHyperbolae(MovingCameraScene):
             randarrows.add(arrowi)
 
         pmetric1 = MathTex("x^2 + y^2 = R^2").move_to(arc0b.get_start()).shift(DOWN*0.5).set_color(FunRed)
-        pmetric2 = MathTex("x^2 + y^2 = 2R^2").move_to(arc1t.get_end()).shift(LEFT*2).set_color(NewOrange2)
-        pmetric3 = MathTex("x^2 + y^2 = 3R^2").move_to(arc2b.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
+        pmetric2 = MathTex("x^2 + y^2 = (2R)^2").move_to(arc1t.get_end()).shift(LEFT*2).set_color(NewOrange2)
+        pmetric3 = MathTex("x^2 + y^2 = (3R)^2").move_to(arc2b.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
 
 
         self.play(Create(randarrows))
@@ -3744,8 +3817,8 @@ class InvariantHyperbolae(MovingCameraScene):
         # ADD INTERSECTIONS HERE, METRIC EQ
 
         metric1 = MathTex("x^2 - (ct)^2 = S^2").move_to(tl0.get_start()).shift(DOWN*0.5).set_color(FunRed)
-        metric2 = MathTex("x^2 - (ct)^2 = 2S^2").move_to(sl1.get_start()).shift(LEFT*2).set_color(NewOrange2)
-        metric3 = MathTex("x^2 - (ct)^2 = 3S^2").move_to(tl2.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
+        metric2 = MathTex("x^2 - (ct)^2 = (2S)^2").move_to(sl1.get_start()).shift(LEFT*2.2).set_color(NewOrange2)
+        metric3 = MathTex("x^2 - (ct)^2 = (3S)^2").move_to(tl2.get_start()).shift(DOWN*0.5).set_color(LemonOrange)
 
 
         randarrows = VGroup()
@@ -4208,4 +4281,14 @@ class LaEq7(Scene):
         
         eq1 = MathTex(r"t = \frac{v}{c^2}x").set_color(SteelBlue).scale(1.5)
         self.add(eq1)
+
+
+class Pyth(Scene):
+    def construct(self):
+        
+        eq1 = MathTex(r"x^2 + y^2", " = r^2").set_color(gndcolor1).scale(1.5)
+        eq1[1].set_color(FunRed)
+        self.add(eq1)
+
+
 
