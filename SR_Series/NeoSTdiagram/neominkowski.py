@@ -1149,6 +1149,15 @@ class LTsShowcase(Scene):
         self.wait(5)
 
 
+
+class Gammaeq(Scene):
+    def construct(self):
+        gamm = MathTex(r"\gamma = \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}}").set_color(NewOrange2).scale(1.5)
+        self.play(Write(gamm), run_time=2)
+        self.wait(5)
+
+
+
 # Complete
 class LorentzAxes(MovingCameraScene):
     def construct(self):
@@ -1265,7 +1274,7 @@ class LorentzAxes(MovingCameraScene):
 
 
         self.play(FadeOut(*[cbpray, cpsimdot, alabel, blabel, clabel, bpline, cpline, bdot, cdot, adot]),
-                          ReplacementTransform(abpray, lightray), ReplacementTransform(apline, tpax),
+                          ReplacementTransform(abpray, lightray), Transform(apline, tpax),
                           tpaxx0label.animate.move_to(tplabel.get_center()))
         self.wait(2)
         self.play(ReplacementTransform(xpaxt0label, xplabel), ReplacementTransform(tpaxx0label, tplabel))
@@ -1317,8 +1326,46 @@ class LorentzAxes(MovingCameraScene):
         self.play(Write(LorentzTransform1), Write(LorentzTransform2) ,Write(LorentzTransform3), Write(LorentzTransform4), lag_ratio=0.2)
         self.wait(5)
         self.play(FadeOut(*LorentzTransforms))
-        self.play(self.camera.frame.animate.move_to(xpax.get_center()).scale(0.6), run_time=5)
+        # self.play(self.camera.frame.animate.move_to(xpax.get_center()).scale(0.6), run_time=5)
+        apline1 = Line(adot.get_center(), adot.get_center() + tphat*6, stroke_width=5).set_color(pcolor1)
+        
+
+        alabel = Text("A").move_to(apline1.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+        blabel = Text("B").move_to(bpline.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+        clabel = Text("C").move_to(cpline.get_end()).shift(UP*0.4).set_color(SteelBlue).scale(0.9)
+        abpray = DashedLine(og, bpcatch).set_color(lightcolor)
+        cbpray = DashedLine(cbemit, bpcatch).set_color(lightcolor)
+
+        lines = VGroup(apline1, bpline, cpline)
+        self.play(self.camera.frame.animate.shift(LEFT*3), FadeOut(*[apline, tplabel, lightray]))
+        self.wait()
+        self.play(Create(lines), run_time=2)
+        self.play(Create(abpray), Create(cbpray))
+        self.play(Write(alabel), Write(blabel), Write(clabel))
         self.wait(5)
+
+
+        self.play(FadeOut(lines), FadeOut(*[alabel, blabel, clabel, abpray, cbpray]))
+        self.wait(2)
+        tpax = Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(pcolor1)
+        deltxpt = ax.c2p(ax.p2c(tpax.get_end())[0]-0.1, 0)
+
+        deltxline = Line(og, deltxpt, stroke_width=4).set_color(PlasticPink)
+        deltxlabel = MathTex("\Delta x").move_to(deltxline.get_center()).shift(DOWN*0.3).set_color(PlasticPink)
+
+        tpaxeq = MathTex("x = vt").move_to(tplabel.get_center()).set_color(SteelBlue)
+
+
+        self.play(Create(tpax), Create(deltxline), run_time=2)
+        self.play(Write(deltxlabel))
+        self.wait()
+        
+        self.wait(2)
+        self.play(Write(tpaxeq))
+
+
+        self.wait(5)
+
 
 
 # Complete
