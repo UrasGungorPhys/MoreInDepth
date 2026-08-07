@@ -1059,9 +1059,94 @@ class FindLorentzAxes(MovingCameraScene):
         self.wait(2)
         tplabel = MathTex("t'").next_to(tpax.get_end(), UP*0.8+RIGHT*0.2).set_color(pcolor2)
         xplabel = MathTex("x'").next_to(xpax.get_end(), RIGHT*0.8+UP*0.2).set_color(pcolor2)
-        self.play(Write(tplabel), Write(xplabel))
+        # self.play(Write(tplabel), Write(xplabel))
         self.wait(5)
 
+        xpeq = MathTex(r"t = \frac{v}{c^2}x").set_color(SteelBlue).move_to(xpax.get_end()).shift(UP*0.1+RIGHT*1.65).scale(1.5)
+        xpeqnatty = MathTex(r"t = vx").set_color(SteelBlue).move_to(xpax.get_end()).shift(UP*0.1+RIGHT*1.3).scale(1.5)
+        teq = MathTex(r"x = vt").set_color(SteelBlue).move_to(tpax.get_end()).shift(UP*0.1+RIGHT*1.4).scale(1.5)
+
+        cis1 = MathTex("c = 1").scale(1.8).set_color(lightcolor).move_to(xpeq.get_center()).shift(UP*2)
+
+        template = TexTemplate()
+        template.add_to_preamble(r"\usepackage{xcolor}")
+
+        MathTex.set_default(tex_template=template)
+
+        basetries = "#6B7887"
+
+        LorentzTransform1 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{x'} = \gamma ("
+            r"\textcolor[HTML]{E8D0B7}{x}-v\textcolor[HTML]{E8D0B7}{t}"
+            r")}"
+        ).move_to(cis1).scale(1.3)
+
+        LorentzTransform2 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
+            r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
+            r"\right)}"
+        ).move_to(LorentzTransform1).shift(DOWN*2).scale(1.3)
+
+
+        self.play(Write(xpeq))
+        xpeq0 = xpeq.copy()
+        self.wait(2)
+        self.play(Write(teq))
+
+        self.wait(3)
+        self.play(Write(cis1))
+        self.play(Transform(xpeq, xpeqnatty))
+        self.wait(2)
+
+        # self.play(Write(LorentzTransform1), Write(LorentzTransform2))
+        self.wait(5)
+
+        
+
+class LTsShowcase(Scene):
+    def construct(self):
+
+        template = TexTemplate()
+        template.add_to_preamble(r"\usepackage{xcolor}")
+
+        MathTex.set_default(tex_template=template)
+        basetries = "#6B7887"
+        LorentzTransform1 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{x'} = \gamma ("
+            r"\textcolor[HTML]{E8D0B7}{x}-v\textcolor[HTML]{E8D0B7}{t}"
+            r")}"
+        ).shift(UP*3.3).scale(1.3)
+
+        LorentzTransform2 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
+            r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
+            r"\right)}"
+        ).move_to(LorentzTransform1).shift(DOWN*1.6).scale(1.3)
+
+        LorentzTransform3 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{E8D0B7}{x} = \gamma ("
+            r"\textcolor[HTML]{74C0F3}{x'}+v\textcolor[HTML]{74C0F3}{t'}"
+            r")}"
+        ).move_to(LorentzTransform2).shift(DOWN*2).scale(1.3)
+
+        LorentzTransform4 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{E8D0B7}{t} = \gamma \left("
+            r"\textcolor[HTML]{74C0F3}{t'} + \frac{v}{c^2}\textcolor[HTML]{74C0F3}{x'}"
+            r"\right)}"
+        ).move_to(LorentzTransform3).shift(DOWN*1.6).scale(1.3)
+
+        self.play(Write(LorentzTransform1), run_time=2)
+        self.play(Write(LorentzTransform2), run_time=2)
+        self.wait(2)
+        self.play(Write(LorentzTransform3), run_time=2)
+        self.play(Write(LorentzTransform4), run_time=2)
+        self.wait(5)
 
 
 # Complete
