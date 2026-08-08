@@ -1159,7 +1159,170 @@ class Gammaeq(Scene):
 
 class GammaScaling(MovingCameraScene):
     def construct(self):
-        pass
+        self.camera.background_color = BGtry
+
+        
+        ll = 6  # axis lengths to draw
+        axrange = 10  # coordinate ranges
+        norm = ll/axrange # normalize any distance to fit
+        pcolor=BLUE_C  # Color to use for theLT primed axes
+
+        # Stationary axes:
+
+        ax = Axes(x_range=[0,axrange,1], y_range=[0,axrange,1], 
+        x_length=ll, y_length=ll,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        # grid = NumberPlane(x_range=[1,axrange,1], y_range=[1,axrange,1], 
+        # x_length=ll, y_length=ll,
+        # background_line_style={"stroke_color": gndcolor2,
+        #                         "stroke_width": 1, 
+        #                         "stroke_opacity": 0.5,})
+
+        grid = homemade_grid(ax, xrange=[0,axrange], yrange=[0,axrange], colorchoice=propercolor)
+
+        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(axrange,axrange)).set_color(lightcolor)
+        xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(axrange,axrange)).set_color(lightcolor)
+        # lightlabel = MathTex("c").next_to(xct.get_end(), UR).set_color(lightcolor)
+
+        # Initial axes, to be Lorentz transformed:
+        OG = ax.c2p(0,0)
+        xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
+        that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
+
+        xpi = Arrow(start=OG, end=OG+10*xhat, buff=0).set_color(pcolor1)
+        tpi = Arrow(start=OG, end=OG+10*that, buff=0).set_color(pcolor1)
+
+        # Initial Lorentz grid
+        manual_grids0x = VGroup()
+        manual_grids0y = VGroup()
+        for i in range(1,8):
+
+            xline = Line(start=OG + i*that,
+                         end=OG + i*that + 9.5*xhat, buff=0,
+                         stroke_color=pcolor2, stroke_opacity=0.5,stroke_width=2)
+
+            tline = Line(start=OG + i*xhat,
+                         end=OG + i*xhat + 9.5*that, buff=0,
+                         stroke_color=pcolor2, stroke_opacity=0.5,stroke_width=2)
+
+            manual_grids0x.add(xline)
+            manual_grids0y.add(tline)
+
+        # Lorentz axes
+        v = 0.35
+        gamma = 1/np.sqrt(1-v**2)
+
+        xp_direction = np.array([1,v,0])
+        tp_direction = np.array([v,1,0]) 
+
+        xphat = xp_direction
+        tphat = tp_direction
+
+        gam=ValueTracker(1.10)
+
+        xp = always_redraw(lambda: Arrow(start=OG, end=OG + 5.3*xp_direction*gam.get_value()/np.linalg.norm(xp_direction), buff=0, stroke_width=3.5).set_color(pcolor1))
+        xplabel = always_redraw(lambda: MathTex("x'").next_to(xp.get_end(), RIGHT*0.8+UP*0.2).set_color(pcolor2))
+
+        tp = always_redraw(lambda: Arrow(start=OG, end=OG + 5.3*tp_direction*gam.get_value()/np.linalg.norm(tp_direction), buff=0, stroke_width=3.5).set_color(pcolor1))
+        tplabel = always_redraw(lambda: MathTex("t'").next_to(tp.get_end(), UP*0.8+RIGHT*0.2).set_color(pcolor2))
+        xct_long = DashedLine(start=ax.c2p(0,0), end=ax.c2p(axrange+2.5,axrange+2.5)).set_color(lightcolor)
+        # lightlabel_long = MathTex("c").next_to(xct_long.get_end(), DR).set_color(lightcolor)
+
+        # Lorentz grid
+
+        manual_gridspx = VGroup()
+        manual_gridspy = VGroup()
+
+        for i in range(1,8):
+
+            xpline = always_redraw(lambda i=i: Line(start=OG + i*tp_direction*gam.get_value()*norm*1.01,
+                         end=OG + i*tp_direction*gam.get_value()*norm*1.01 + 4.8*xp_direction*gam.get_value()*1.01, buff=0, 
+                         stroke_color=pcolor1, stroke_opacity=0.5,stroke_width=2))
+
+
+            tpline = always_redraw(lambda i=i:Line(start=OG + i*xp_direction*gam.get_value()*norm*1.01,
+                         end=OG + i*xp_direction*gam.get_value()*norm*1.01 + 4.8*tp_direction*gam.get_value()*1.01, buff=0,
+                         stroke_color=pcolor1, stroke_opacity=0.5,stroke_width=2))
+
+            manual_gridspx.add(xpline)
+            manual_gridspy.add(tpline)
+
+        self.play(Create(ax), Create(ax_labels), self.camera.frame.animate.scale(1.2).shift(UP*0.5+RIGHT*3.5))
+        self.play(AnimationGroup(Create(grid),Create(xct)), run_time=2)
+        self.bring_to_front(ax)
+
+        # self.play(FadeIn(*[xpi, tpi, manual_grids0x, manual_grids0y]), run_time=2)
+        self.wait(0.5)
+
+
+        # self.play(FadeOut(lightlabel))
+        # self.play(Transform(xpi, xp), Transform(tpi, tp),
+        #             Transform(manual_grids0x, manual_gridspx),
+        #             Transform(manual_grids0y, manual_gridspy),
+        #             Transform(xct, xct_long),
+        #             self.camera.frame.animate.scale(1.22).shift(UP*0.5+RIGHT*0.74),run_time=4.5)
+        self.play(Create(manual_gridspx), Create(manual_gridspy), Create(xp), Create(tp))
+        self.play(FadeIn(xplabel), FadeIn(tplabel), run_time=2)
+        self.wait()
+        # insert constant t lines here
+        
+        
+        # Initial Lorentz grid
+        # manual_grids0xnew = VGroup()
+        # for i in range(1,10):
+
+        #     xline = Line(start=OG + i*that,
+        #                  end=OG + i*that + 9.5*xhat, buff=0,
+        #                  stroke_color=gndcolor1, stroke_opacity=0.7,stroke_width=3.5)
+
+        #     manual_grids0xnew.add(xline)
+
+
+       
+        
+        self.wait()
+        gamval = always_redraw(lambda: MathTex(r"\gamma = ", f"{gam.get_value():.2f}").set_color(NewOrange2).move_to(ax.x_axis.get_center()).shift(RIGHT*7.5+UP*5).scale(1.5))
+
+
+        gtransform1 = MathTex("x = vt").set_color(SteelBlue).move_to(gamval.get_center()).shift(DOWN).scale(1.6)
+        gtransform2 = MathTex(r"t = \frac{v}{c^2}x").set_color(SteelBlue).move_to(gtransform1.get_center()).shift(DOWN*1.5).scale(1.6)
+
+        ltransform1 = MathTex(r"\gamma", r"\left(x = vt\right)").set_color(SteelBlue).move_to(gamval.get_center()).shift(DOWN*1.6).scale(1.6)
+        ltransform1[0].set_color(NewOrange2)
+        ltransform2 = MathTex(r"\gamma", r"\left(t = \frac{v}{c^2}x\right)").set_color(SteelBlue).move_to(ltransform1.get_center()).shift(DOWN*1.5).scale(1.6)
+        ltransform2[0].set_color(NewOrange2)
+
+        self.play(Write(gtransform1), Write(gtransform2))
+        self.wait(2)
+        self.play(Transform(gtransform1, ltransform1), Transform(gtransform2, ltransform2))
+        self.wait()
+        self.play(Write(gamval))
+        self.wait()
+
+        
+        self.play(gam.animate.set_value(1.20), rate_func=rate_functions.ease_in_quad, run_time=2)
+        self.wait()
+        self.play(gam.animate.set_value(0.80), rate_func=rate_functions.ease_in_out_back, run_time=3)
+        self.wait()
+        self.play(gam.animate.set_value(1.12), rate_func=rate_functions.ease_in_out_back, run_time=2)
+        self.wait(3)
+
+        
+
+        # xplabelt0 = MathTex("x'").next_to(xp.get_end(), RIGHT*0.8+UP*0.2).set_color(pcolor2).scale(0.8)
+        # self.play(Transform(xplabel, xplabelt0))
+
+        
+        
+
+        
+
+        
+
+        self.wait(2)
+
+
 
 
 
@@ -4343,7 +4506,6 @@ class StarryBackground(Scene):
         self.add(stars)
 
         self.wait(5)
-
 
 
 class MetricDef(Scene):
