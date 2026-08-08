@@ -1323,31 +1323,80 @@ class GammaScaling(MovingCameraScene):
         self.wait(2)
 
 
-class ContractionsCancel(Scene):
-    def consturct(self):
-        gftitle = Tex("Ground Frame").scale(2.5).set_color(Vanilla).shift(UP*2.5+LEFT*3)
-        gfvel = Tex("v: Trains velocity").set_color(lightcolor)
-        gfdist = Tex("D: Trains distance to destination").set_color(Vanilla)
-        gfjtime = Tex("T: Trains journey time - Ground clock").set_color(Vanilla)
-        gfjttime = Tex("T': Trains journey time - Train clock").set_color(Vanilla)
+class ContractionsCancel(MovingCameraScene):
+    def construct(self):
 
-        gfeq1 = MathTex(r"T = \frac{D}{v}")
-        gftimedil = MathTex("T = \gamma T'")
-        gfeq2 = MathTex(r"T' = \frac{D}{\gamma v}")
+        self.camera.frame.scale(1.5).shift(DOWN*1.5)
 
+        gftitle = Tex("Ground Frame").scale(2.5).set_color(Vanilla).shift(UP*2.5+LEFT*5)
+        gfdist = Tex("D: Trains distance to destination").set_color(Vanilla).move_to(gftitle.get_center()).shift(DOWN*1.3)
+        gfjtime = Tex("T: Trains journey time - Ground clock").set_color(Vanilla).move_to(gfdist.get_center()).shift(DOWN*0.8).align_to(gfdist,LEFT)
+        gfjttime = Tex("T': Trains journey time - Train clock").set_color(Vanilla).move_to(gfjtime.get_center()).shift(DOWN*0.8).align_to(gfdist,LEFT)
+        gfvel = Tex("v: Trains velocity").set_color(lightcolor).move_to(gfjttime.get_center()).shift(DOWN*0.8+LEFT).align_to(gfdist,LEFT)
+        gftimedil = MathTex("T", r"= \gamma T'").move_to(gfjttime.get_center()).shift(DOWN*2).scale(1.4).set_color(Vanilla)
+        gftimedil[1].set_color(pcolor1)
 
-
-        tftitle = Tex("Train Frame").scale(2.5).set_color(pcolor1).shift(UP*2.5+RIGHT*3)
-        tfvel = Tex("v: Ground backwards velocity").set_color(lightcolor)
-        tfdist = Tex("D': Trains distance to destination").set_color(pcolor1)
-        tfjttime = Tex("T': Trains journey time - Train clock").set_color(pcolor1)
-        tfjtime = Tex("T: Trains journey time - Ground clock").set_color(pcolor1)
-
-        tfeq1 = MathTex(r"T' = \frac{D'}{v}")
-        tflengthcont = MathTex(r"D' = \frac{D}{\gamma}")
-        tfeq2 = MathTex(r"T' = \frac{D'}{v} = \frac{D}{\gamma v}")
+        
+        gfeq1 = MathTex(r"T = \frac{D}{v}").move_to(gftimedil.get_center()).shift(DOWN*1.7).scale(1.4).set_color(Vanilla).align_to(gftimedil,LEFT)
+        gfeq2 = MathTex(r"T' = \frac{T}{\gamma} = \frac{D}{\gamma v}").move_to(gfeq1.get_center()).shift(DOWN*1.9).scale(1.4).set_color(lightcolor)
 
 
+        tftitle = Tex("Train Frame").scale(2.5).set_color(pcolor1).shift(UP*2.5+RIGHT*5)
+        tfdist = Tex("D': Trains distance to destination").set_color(pcolor1).move_to(tftitle.get_center()).shift(DOWN*1.3)
+        tfjttime = Tex("T': Trains journey time - Train clock").set_color(pcolor1).move_to(tfdist.get_center()).shift(DOWN*0.8).align_to(tfdist,LEFT)
+        tfjtime = Tex("T: Trains journey time - Ground clock").set_color(pcolor1).move_to(tfjttime.get_center()).shift(DOWN*0.8).align_to(tfdist,LEFT)
+        tfvel = Tex("v: Ground backwards velocity").set_color(lightcolor).move_to(tfjtime.get_center()).shift(DOWN*0.8).align_to(tfdist,LEFT)
+        tflengthcont = MathTex("D", r" = D'\gamma").move_to(tfvel.get_center()).shift(DOWN*1.5).scale(1.4).set_color(pcolor1)
+        tflengthcont[0].set_color(Vanilla)
+
+        tfeq1 = MathTex(r"T' = \frac{D'}{v}").move_to(tflengthcont.get_center()).shift(DOWN*1.7).scale(1.4).align_to(tflengthcont,LEFT)
+        tfeq2 = MathTex(r"T' = \frac{D'}{v} = \frac{D}{\gamma v}").move_to(tfeq1.get_center()).shift(DOWN*1.9).scale(1.4).set_color(lightcolor).align_to(tflengthcont,LEFT)
+        
+
+        self.play(Write(gftitle), Write(tftitle), run_time=2)
+        self.play(Write(gfdist), Write(tfdist))
+        self.play(Write(gfjtime), Write(tfjttime))
+        self.play(Write(gfjttime), Write(tfjtime))
+        self.play(Write(gfvel), Write(tfvel))
+        self.wait()
+        self.play(Write(gftimedil), Write(tflengthcont))
+        self.wait(2)
+        self.play(Write(gfeq1), Write(tfeq1))
+        self.wait(2)
+        self.play(Write(gfeq2), Write(tfeq2))
+        self.wait(5)
+
+
+
+class PrimitiveTransforms(MovingCameraScene):
+    def construct(self):
+
+
+        title = Tex("Start from ground frame:").set_color(Vanilla).shift(UP*2).scale(2)
+        tr1 = MathTex("x'", " = x - vt").set_color(Vanilla).move_to(title.get_center()).shift(DOWN*1.5).scale(1.5)
+        tr1[0].set_color(pcolor1)
+        tr2 = MathTex("t'", r" =  t -\frac{v}{c^2}x").set_color(Vanilla).scale(1.5).move_to(tr1.get_center()).shift(DOWN*1.5).align_to(tr1,LEFT)
+        tr2[0].set_color(pcolor1)
+
+
+        ptitle = Tex("Start from train frame").set_color(pcolor1).shift(UP*2).scale(2)
+        ptr1 = MathTex("x", " = x' + vt'").set_color(pcolor1).move_to(ptitle.get_center()).shift(DOWN*1.5).scale(1.5)
+        ptr1[0].set_color(Vanilla)
+        ptr2 = MathTex("t", r" =  t' + \frac{v}{c^2}x'").set_color(pcolor1).scale(1.5).move_to(tr1.get_center()).shift(DOWN*1.5).align_to(tr1,LEFT)
+        ptr2[0].set_color(Vanilla)
+
+
+        self.play(Write(title))
+        self.play(Write(tr1), Write(tr2))
+        self.wait(5)
+
+        self.play(FadeOut(*[title, tr1, tr2]))
+        self.wait(3)
+
+        self.play(Write(ptitle))
+        self.play(Write(ptr1), Write(ptr2))
+
+        self.wait(5)
 
 
 # Complete
