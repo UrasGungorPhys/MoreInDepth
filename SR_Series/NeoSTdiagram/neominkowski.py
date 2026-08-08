@@ -1323,6 +1323,30 @@ class GammaScaling(MovingCameraScene):
         self.wait(2)
 
 
+class ContractionsCancel(Scene):
+    def consturct(self):
+        gftitle = Tex("Ground Frame").scale(2.5).set_color(Vanilla).shift(UP*2.5+LEFT*3)
+        gfvel = Tex("v: Trains velocity").set_color(lightcolor)
+        gfdist = Tex("D: Trains distance to destination").set_color(Vanilla)
+        gfjtime = Tex("T: Trains journey time - Ground clock").set_color(Vanilla)
+        gfjttime = Tex("T': Trains journey time - Train clock").set_color(Vanilla)
+
+        gfeq1 = MathTex(r"T = \frac{D}{v}")
+        gftimedil = MathTex("T = \gamma T'")
+        gfeq2 = MathTex(r"T' = \frac{D}{\gamma v}")
+
+
+
+        tftitle = Tex("Train Frame").scale(2.5).set_color(pcolor1).shift(UP*2.5+RIGHT*3)
+        tfvel = Tex("v: Ground backwards velocity").set_color(lightcolor)
+        tfdist = Tex("D': Trains distance to destination").set_color(pcolor1)
+        tfjttime = Tex("T': Trains journey time - Train clock").set_color(pcolor1)
+        tfjtime = Tex("T: Trains journey time - Ground clock").set_color(pcolor1)
+
+        tfeq1 = MathTex(r"T' = \frac{D'}{v}")
+        tflengthcont = MathTex(r"D' = \frac{D}{\gamma}")
+        tfeq2 = MathTex(r"T' = \frac{D'}{v} = \frac{D}{\gamma v}")
+
 
 
 
