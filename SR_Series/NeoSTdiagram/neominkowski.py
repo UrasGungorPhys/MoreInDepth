@@ -1157,6 +1157,11 @@ class Gammaeq(Scene):
         self.wait(5)
 
 
+class GammaScaling(MovingCameraScene):
+    def construct(self):
+        pass
+
+
 
 # Complete
 class LorentzAxes(MovingCameraScene):
@@ -4340,6 +4345,125 @@ class StarryBackground(Scene):
         self.wait(5)
 
 
+
+class MetricDef(Scene):
+    def construct(self):
+        metric1 = MathTex(r"g: M\times M \to \mathbb{R}").shift(UP*2.5).scale(1.3).set_color(SteelBlue)
+        metric2 = MathTex(r"\forall x,y,z \in M:").move_to(metric1.get_center()).shift(DOWN*1.3).scale(1.2).set_color(Vanilla)
+        metric3 = MathTex(r"i) g(x,x) = 0").move_to(metric2.get_center()).shift(DOWN).scale(1.2).set_color(Vanilla)
+        metric4 = MathTex(r"ii)g(x,y) = g(y,x)").move_to(metric3.get_center()).shift(DOWN).scale(1.2).set_color(Vanilla)
+        metric5 = MathTex(r"iii)g(x,y) = 0 \implies x=y").move_to(metric4.get_center()).shift(DOWN).scale(1.2).set_color(Vanilla)
+        metric6 = MathTex(r"iv)g(x,y) + g(y,z) \ge g(x,z)").move_to(metric5.get_center()).shift(DOWN).scale(1.2).set_color(Vanilla)
+
+
+        self.play(Write(metric1), Write(metric2))
+        self.play(Write(metric3))
+        self.play(Write(metric4))
+        self.play(Write(metric5))
+        self.play(Write(metric6))
+        eqs = VGroup(metric1, metric2, metric3, metric4, metric5, metric6)
+
+        self.wait(4)
+        meh = Tex("Basically ", "defines ", "distances!").set_color(Vanilla).scale(1.6)
+        meh[1].set_color(SteelBlue)
+
+
+        self.play(Transform(eqs, meh), run_time=1.5)
+
+        self.wait(3)
+        EinsteinFieldEqs = MathTex(r"R_{ab} - \frac{1}{2}", r"g_{ab}\,",r"R = 8\pi G\,T_{ab}").set_color(Vanilla)
+        EinsteinFieldEqs[1].set_color(SteelBlue)
+        self.play(Transform(eqs, EinsteinFieldEqs))
+
+        self.wait(5)
+
+
+class PythAsMetric(Scene):
+    def construct(self):
+        pytheq1 = MathTex("x^2 + y^2 = r^2").set_color(Vanilla).shift(UP*1.5+LEFT*2.2).scale(1.3)
+        pytheq2 = MathTex("x'^2 + y'^2 = r^2").set_color(pcolor1).shift(UP*1.5+RIGHT*2.2).scale(1.3)
+        pytheq = MathTex("x^2 + y^2 = ", "x'^2 + y'^2").set_color(Vanilla).scale(1.5)
+        pytheq[1].set_color(pcolor1)
+
+        metrictex = MathTex("g(x, y) = ", "g(x', y')").set_color(Vanilla).scale(1.65)
+        metrictex[1].set_color(pcolor1)
+
+        self.play(Write(pytheq1))
+        self.play(Write(pytheq2))
+        self.wait(2)
+        self.play(Transform(pytheq1, pytheq[0]), Transform(pytheq2, pytheq[1]))
+
+        self.wait(2)
+        self.play(Transform(pytheq1, metrictex[0]), Transform(pytheq2, metrictex[1]))
+        self.wait(3)
+
+
+class STMetric(Scene):
+    def construct(self):
+        
+        
+
+        metrictex = MathTex("g(", "x, t", ")", "=", "g(", "x', t'", ")").set_color(NewOrange2).scale(2.5)
+        metrictex[1].set_color(Vanilla)
+        metrictex[2].set_color(NewOrange2)
+        metrictex[3].set_color(Vanilla)
+        metrictex[4].set_color(NewOrange2)
+        metrictex[5].set_color(pcolor1)
+        metrictex[6].set_color(NewOrange2)
+
+        lhs = VGroup(metrictex[0], metrictex[1], metrictex[2], metrictex[3])
+        rhs = VGroup(metrictex[4], metrictex[5], metrictex[6])
+        
+
+        self.play(Write(lhs), Write(rhs),run_time=1.5)
+        template = TexTemplate()
+        template.add_to_preamble(r"\usepackage{cancel}")
+        self.wait(2)
+        self.play(lhs.animate.shift(UP*1.5), rhs.animate.shift(UP*1.5))
+        pythno = MathTex("x^2 + t^2", r"\stackrel{?}{=}", "x'^2 + t'^2").set_color(Vanilla).move_to(metrictex.get_center()).shift(DOWN*1.8).scale(1.5)
+        pythno[1].set_color(NewOrange2)
+        pythno[2].set_color(pcolor1)
+
+        self.play(Write(pythno))
+
+        pythnono = MathTex(r"x^2 + t^2 \neq x'^2 + t'^2").set_color(Vanilla).move_to(metrictex.get_center()).shift(DOWN*1.8).scale(1.5)
+        pythcancel = MathTex(r"x^2 + t^2 \neq x'^2 + t'^2").set_color(FunRed).move_to(metrictex.get_center()).shift(DOWN*1.8).scale(1.5)
+
+        self.wait(5)
+        self.remove(pythno)
+        self.add(pythnono)
+
+        self.wait(2)
+
+        self.play(Transform(pythnono, pythcancel), FadeOut(*[lhs, rhs]))
+        self.wait(2)
+        self.play(pythnono.animate.shift(UP*2.5))
+        self.wait()
+
+        works = MathTex("x^2", "- c^2", "t^2", "=", "x'^2", "- c^2", "t'^2").set_color(NewOrange2).move_to(pythnono.get_center()).shift(DOWN*1.5).scale(1.5)
+        works[0].set_color(Vanilla)
+        works[2].set_color(Vanilla)
+        works[3].set_color(Vanilla)
+        works[4].set_color(pcolor1)
+        works[6].set_color(pcolor1)
+        minkmetric0 = MathTex("g(", "x, t", ")", "=", "x^2", "- c^2", "t^2").set_color(NewOrange2)
+        minkmetric = MathTex("g(", "x, t", ")", "=", "x^2", "- c^2", "t^2").set_color(NewOrange2).move_to(works.get_center()).shift(DOWN*1.5).scale(2)
+        minkmetric[1].set_color(Vanilla)
+        minkmetric[3].set_color(Vanilla)
+        minkmetric[4].set_color(Vanilla)
+        minkmetric[6].set_color(Vanilla)
+
+        self.play(Write(works))
+        self.wait(2)
+        self.play(FadeOut(pythnono))
+        self.wait(2)
+        self.play(Write(minkmetric))
+        self.wait(2)
+        self.play(FadeOut(works))
+        self.play(minkmetric.animate.move_to(minkmetric0.get_center()))
+        self.wait(5)
+
+
 # PNG Equations
 class Eq1(Scene):
     def construct(self):
@@ -4453,5 +4577,26 @@ class Pyth(Scene):
         eq1[1].set_color(FunRed)
         self.add(eq1)
 
+
+class teq0(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("t=0").set_color(gndcolor1).scale(1.5)
+        self.add(eq1)
+
+
+class teq1(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("t=1").set_color(gndcolor1).scale(1.5)
+        self.add(eq1)
+
+
+
+class tpeq0(Scene):
+    def construct(self):
+        
+        eq1 = MathTex("t'=0").set_color(pcolor1).scale(1.5)
+        self.add(eq1)
 
 
