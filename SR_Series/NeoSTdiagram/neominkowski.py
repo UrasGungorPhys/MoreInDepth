@@ -43,6 +43,7 @@ Vanilla = ManimColor.from_hex("#F5E2C8")
 SchoolBus = ManimColor.from_hex("#FDE12D")
 NewOrange1 = ManimColor.from_hex("#F34213")
 NewOrange2 = ManimColor.from_hex("#FE5F00")
+
 LemonOrange = ManimColor.from_hex("#F18F01")
 Vanilla2 = ManimColor.from_hex("#E8D0B7")
 
@@ -1080,14 +1081,14 @@ class FindLorentzAxes(MovingCameraScene):
             r"\textcolor[HTML]{74C0F3}{x'} = \gamma ("
             r"\textcolor[HTML]{E8D0B7}{x}-v\textcolor[HTML]{E8D0B7}{t}"
             r")}"
-        ).move_to(cis1).scale(1.3)
+        ).move_to(cis1).scale(1.5).shift(UP*2.5+LEFT)
 
         LorentzTransform2 = MathTex(
             r"\textcolor[HTML]{92A3B6}{"
             r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
             r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
             r"\right)}"
-        ).move_to(LorentzTransform1).shift(DOWN*2).scale(1.3)
+        ).move_to(LorentzTransform1).shift(DOWN*2).scale(1.)
 
 
         self.play(Write(xpeq))
@@ -1100,10 +1101,95 @@ class FindLorentzAxes(MovingCameraScene):
         self.play(Transform(xpeq, xpeqnatty))
         self.wait(2)
 
-        # self.play(Write(LorentzTransform1), Write(LorentzTransform2))
+        self.play(FadeOut(cis1))
+        self.play(Transform(xpeq, xpeq0))
+        self.wait(3)
+
+        self.play(Write(LorentzTransform1), Write(LorentzTransform2))
+        self.wait(5)
+        self.play(FadeOut(*[LorentzTransform1, LorentzTransform2]))
+        self.wait(3)
+
+        deltxline = Line(ax.c2p(0, 5), gli(Line(ax.c2p(0,5), ax.c2p(5,5)), tpax), stroke_width=5).set_color(PlasticPink)
+        deltxlabel = MathTex(r"\Delta x").set_color(PlasticPink).move_to(deltxline.get_center()).shift(UP*0.4)
+        delttline = Line(ax.c2p(5, 0), gli(Line(ax.c2p(5,0), ax.c2p(5,5)), xpax), stroke_width=5).set_color(PlasticPink)
+        delttlabel = MathTex(r"\Delta t").set_color(PlasticPink).move_to(delttline.get_center()).shift(RIGHT*0.8)
+
+
+        self.play(Create(delttline), Write(delttlabel))
+        self.play(Create(deltxline), Write(deltxlabel))
+
         self.wait(5)
 
+        xpkill = ax.x_axis.copy()
+        tpkill = ax.y_axis.copy()
+
+        self.play(FadeOut(*[delttline, delttlabel, deltxline, deltxlabel]))
         
+
+        self.wait(2)
+        self.play(FadeOut(*[teq, xpeq]))
+        
+        
+        self.remove(xpax)
+        self.remove(tpax)
+        self.remove(apline)
+
+        tpax = Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(pcolor1)
+        xpax = Arrow(og, ax.c2p(np.sqrt(L0**2 + (v*L0)**2), v*L0), buff=0).set_color(pcolor1)
+        self.add(tpax)
+        self.add(xpax)
+        xpax0 = xpax.copy()
+        tpax0=tpax.copy()
+
+        self.play(Transform(xpax, xpkill), Transform(tpax, tpkill))
+        self.wait(5)
+
+
+        
+        self.wait(2)
+        self.play(Transform(xpax, xpax0))
+        self.play(Write(xpeq))
+        self.wait(2)
+
+        self.play(Transform(tpax, tpax0))
+        self.play(Write(teq))
+        self.wait(3)
+        
+
+class GalEqs(MovingCameraScene):
+    def construct(self):
+        
+        alice1 = MathTex("x = vt + L").shift(UP*2).scale(1.5).set_color(Vanilla)
+        bob1 = MathTex(r"x'"," = x - vt").set_color(NewOrange2).scale(1.5).set_color(Vanilla)
+        bob1[0].set_color(pcolor1)
+
+        bob2 = MathTex("x'",  "= vt + L ", "- vt", " = L").move_to(bob1.get_center()).shift(DOWN*1.3).set_color(pcolor1).scale(1.5)
+        bob2[1].set_color(Vanilla)
+        self.play(Write(alice1), run_time=2)
+        self.wait()
+        self.play(Write(bob1))
+        self.wait()
+        self.play(Write(bob2))
+        self.wait(5)
+
+
+class GalEqs2(MovingCameraScene):
+    def construct(self):
+        
+        alice1 = MathTex(r"\Delta t = \frac{v}{c^2}x").shift(UP*2).scale(1.5).set_color(Vanilla)
+        bob1 = MathTex(r"\Delta t'",r" = \Delta t - \frac{v}{c^2}x").set_color(NewOrange2).scale(1.5).set_color(Vanilla)
+        bob1[0].set_color(pcolor1)
+
+        bob2 = MathTex(r"\Delta t'",  r"= \frac{v}{c^2}x ", r"-\frac{v}{c^2}x", " = 0").move_to(bob1.get_center()).shift(DOWN*1.75).set_color(pcolor1).scale(1.5)
+        bob2[1].set_color(Vanilla)
+        self.play(Write(alice1), run_time=2)
+        self.wait()
+        self.play(Write(bob1))
+        self.wait()
+        self.play(Write(bob2))
+        self.wait(5)
+
 
 class LTsShowcase(Scene):
     def construct(self):
@@ -1125,21 +1211,21 @@ class LTsShowcase(Scene):
             r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
             r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
             r"\right)}"
-        ).move_to(LorentzTransform1).shift(DOWN*1.6).scale(1.3)
+        ).move_to(LorentzTransform1).shift(DOWN*1.4).scale(1.3)
 
         LorentzTransform3 = MathTex(
             r"\textcolor[HTML]{92A3B6}{"
             r"\textcolor[HTML]{E8D0B7}{x} = \gamma ("
             r"\textcolor[HTML]{74C0F3}{x'}+v\textcolor[HTML]{74C0F3}{t'}"
             r")}"
-        ).move_to(LorentzTransform2).shift(DOWN*2).scale(1.3)
+        ).move_to(LorentzTransform2).shift(DOWN*1.55).scale(1.3)
 
         LorentzTransform4 = MathTex(
             r"\textcolor[HTML]{92A3B6}{"
             r"\textcolor[HTML]{E8D0B7}{t} = \gamma \left("
             r"\textcolor[HTML]{74C0F3}{t'} + \frac{v}{c^2}\textcolor[HTML]{74C0F3}{x'}"
             r"\right)}"
-        ).move_to(LorentzTransform3).shift(DOWN*1.6).scale(1.3)
+        ).move_to(LorentzTransform3).shift(DOWN*1.4).scale(1.3)
 
         self.play(Write(LorentzTransform1), run_time=2)
         self.play(Write(LorentzTransform2), run_time=2)
@@ -1372,17 +1458,17 @@ class PrimitiveTransforms(MovingCameraScene):
     def construct(self):
 
 
-        title = Tex("Start from ground frame:").set_color(Vanilla).shift(UP*2).scale(2)
-        tr1 = MathTex("x'", " = x - vt").set_color(Vanilla).move_to(title.get_center()).shift(DOWN*1.5).scale(1.5)
+        title = Tex("Start from ground frame:").set_color(Vanilla).shift(UP*2.5).scale(2)
+        tr1 = MathTex("x'", " = x - vt").set_color(Vanilla).move_to(title.get_center()).shift(DOWN*2.5).scale(2)
         tr1[0].set_color(pcolor1)
-        tr2 = MathTex("t'", r" =  t -\frac{v}{c^2}x").set_color(Vanilla).scale(1.5).move_to(tr1.get_center()).shift(DOWN*1.5).align_to(tr1,LEFT)
+        tr2 = MathTex("t'", r" =  t -\frac{v}{c^2}x").set_color(Vanilla).scale(2).move_to(tr1.get_center()).shift(DOWN*2).align_to(tr1,LEFT)
         tr2[0].set_color(pcolor1)
 
 
-        ptitle = Tex("Start from train frame").set_color(pcolor1).shift(UP*2).scale(2)
-        ptr1 = MathTex("x", " = x' + vt'").set_color(pcolor1).move_to(ptitle.get_center()).shift(DOWN*1.5).scale(1.5)
+        ptitle = Tex("Start from train frame").set_color(pcolor1).shift(UP*2.5).scale(2)
+        ptr1 = MathTex("x", " = x' + vt'").set_color(pcolor1).move_to(ptitle.get_center()).shift(DOWN*2.5).scale(2)
         ptr1[0].set_color(Vanilla)
-        ptr2 = MathTex("t", r" =  t' + \frac{v}{c^2}x'").set_color(pcolor1).scale(1.5).move_to(tr1.get_center()).shift(DOWN*1.5).align_to(tr1,LEFT)
+        ptr2 = MathTex("t", r" =  t' + \frac{v}{c^2}x'").set_color(pcolor1).scale(2).move_to(ptr1.get_center()).shift(DOWN*2).align_to(ptr1,LEFT)
         ptr2[0].set_color(Vanilla)
 
 
@@ -1397,6 +1483,52 @@ class PrimitiveTransforms(MovingCameraScene):
         self.play(Write(ptr1), Write(ptr2))
 
         self.wait(5)
+
+
+
+class PrimitiveTransforms2(MovingCameraScene):
+    def construct(self):
+
+        title1 = Tex("Fully Original").set_color(Vanilla).shift(UP*2.8).scale(1.4)
+        title = Tex("Lurents", " Transformations").set_color(Vanilla).shift(UP*1.7).scale(1.8)
+        title[0].set_color(Greenough)
+        tr1 = MathTex("x'", " = x - vt").set_color(Vanilla).move_to(title.get_center()).shift(DOWN*2.5).scale(2)
+        tr1[0].set_color(pcolor1)
+        tr2 = MathTex("t'", r" =  t -\frac{v}{c^2}x").set_color(Vanilla).scale(2).move_to(tr1.get_center()).shift(DOWN*2).align_to(tr1,LEFT)
+        tr2[0].set_color(pcolor1)
+
+        self.play(Write(title1))
+        self.play(Write(title))
+        self.play(Write(tr1), Write(tr2))
+        self.wait(3)
+
+        self.play(tr1.animate.shift(LEFT*3).scale(0.75).set_color(FunRed), tr2.animate.shift(LEFT*3).scale(0.75).set_color(FunRed))
+
+
+        template = TexTemplate()
+        template.add_to_preamble(r"\usepackage{xcolor}")
+
+        MathTex.set_default(tex_template=template)
+        basetries = "#6B7887"
+        LorentzTransform1 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{x'} = \gamma ("
+            r"\textcolor[HTML]{E8D0B7}{x}-v\textcolor[HTML]{E8D0B7}{t}"
+            r")}"
+        ).move_to(tr1.get_center()).shift(RIGHT*6).scale(1.5)
+
+        LorentzTransform2 = MathTex(
+            r"\textcolor[HTML]{92A3B6}{"
+            r"\textcolor[HTML]{74C0F3}{t'} = \gamma \left("
+            r"\textcolor[HTML]{E8D0B7}{t} - \frac{v}{c^2}\textcolor[HTML]{E8D0B7}{x}"
+            r"\right)}"
+        ).move_to(LorentzTransform1).shift(DOWN*1.6).scale(1.5)
+
+        self.play(Write(LorentzTransform1), Write(LorentzTransform2))
+
+        self.wait(5)
+
+
 
 
 # Complete
@@ -2071,8 +2203,8 @@ class LorentzTransform(MovingCameraScene):
         tpax = always_redraw(lambda: Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(pcolor1))
         xpax = always_redraw(lambda: Arrow(og, ax.c2p(np.sqrt(L0**2 + (v*L0)**2), v*L0), buff=0).set_color(pcolor1))
 
-        xplabel = always_redraw(lambda:MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(SteelBlue))
-        tplabel = always_redraw(lambda:MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4 + DOWN*0.07).set_color(SteelBlue))
+        xplabel = always_redraw(lambda:MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(LemonOrange))
+        tplabel = always_redraw(lambda:MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4 + DOWN*0.07).set_color(LemonOrange))
 
         xplabelghost = xplabel.copy().set_opacity(0.3)
         tplabelghost = tplabel.copy().set_opacity(0.3)
@@ -2154,8 +2286,8 @@ class LorentzTransform(MovingCameraScene):
         xpax0 = Arrow(og,ax.c2p(6.5, 0))
         L0 = tpax0.get_length()
 
-        tpax = always_redraw(lambda: Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(pcolor1))
-        xpax = always_redraw(lambda: Arrow(og, ax.c2p(np.sqrt(L0**2 + (v*L0)**2), v*L0), buff=0).set_color(pcolor1))
+        tpax = always_redraw(lambda: Arrow(og, ax.c2p(v*L0, np.sqrt(L0**2 + (v*L0)**2)), buff=0).set_color(NewOrange2))
+        xpax = always_redraw(lambda: Arrow(og, ax.c2p(np.sqrt(L0**2 + (v*L0)**2), v*L0), buff=0).set_color(NewOrange2))
 
         tpaxghost = tpax.copy().set_opacity(0.3)
         xpaxghost = xpax.copy().set_opacity(0.3)
@@ -2172,8 +2304,8 @@ class LorentzTransform(MovingCameraScene):
 
         d2 = Dot(ax.c2p(np.sqrt(5), 0)).set_color(Vanilla).set_z_index(1)
 
-        xplabel = always_redraw(lambda:MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(SteelBlue))
-        tplabel = always_redraw(lambda:MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4 + DOWN*0.07).set_color(SteelBlue))
+        xplabel = always_redraw(lambda:MathTex("x'").move_to(xpax.get_end()).shift(UP*0.5+LEFT*0.15).set_color(LemonOrange))
+        tplabel = always_redraw(lambda:MathTex("t'").move_to(tpax.get_end()).shift(RIGHT*0.4 + DOWN*0.07).set_color(LemonOrange))
 
         xplabelghost = xplabel.copy().set_opacity(0.3)
         tplabelghost = tplabel.copy().set_opacity(0.3)
@@ -2220,7 +2352,7 @@ class LorentzTransform(MovingCameraScene):
         N = 100
         for i in range(N):
             doti = np.random.uniform(0,7,2)
-            dots.add(Dot(ax.c2p(doti[0], doti[1]), radius=0.06).set_z_index(1))
+            dots.add(Dot(ax.c2p(doti[0], doti[1]), radius=0.06).set_color(Vanilla).set_z_index(1))
 
         xcopy = ax.x_axis.copy()
         ycopy = ax.y_axis.copy()
@@ -2237,11 +2369,13 @@ class LorentzTransform(MovingCameraScene):
             xs = np.random.uniform(x0i, hypxf-0.5, 2)
             print(xs)
 
-            hypi = ax.plot(lambda x: hyperbola(x, x0=x0i), x_range=[x0i+hcenter+0.000001,hypxf,0.01], stroke_width=3).set_color(gndcolor2)
+            # hypi = ax.plot(lambda x: hyperbola(x, x0=x0i), x_range=[x0i+hcenter+0.000001,hypxf,0.01], stroke_width=3).set_color(gndcolor2)
+            hypi = ax.plot(lambda x: hyperbola(x, x0=x0i), x_range=[x0i+hcenter+0.000001,hypxf,0.01], stroke_width=3).set_color(LemonOrange)
             
             tmax = hyperbola(hypxf, x0=x0i)
             # print(tmax)
-            thypi = ax.plot(lambda x: thyperbola(x, x0=x0i), x_range=[0, tmax, 0.01], stroke_width=3).set_color(gndcolor2)
+            # thypi = ax.plot(lambda x: thyperbola(x, x0=x0i), x_range=[0, tmax, 0.01], stroke_width=3).set_color(gndcolor2)
+            thypi = ax.plot(lambda x: thyperbola(x, x0=x0i), x_range=[0, tmax, 0.01], stroke_width=3).set_color(FunRed)
 
             xts = np.random.uniform(0, tmax, 2)
             hyperbolas.add(hypi)
@@ -2274,12 +2408,12 @@ class LorentzTransform(MovingCameraScene):
             if ptcoords[0]**2 < ptcoords[1]**2:
                 # timelike case:
                 ptx0 = np.sqrt(-ptcoords[0]**2 + ptcoords[1]**2)
-                pt_hyp_piece = thyperbolapiece(ptcoords[0], ptprimes[0], x0=ptx0).set_color(Vanilla).set_opacity(0.3)
+                pt_hyp_piece = thyperbolapiece(ptcoords[0], ptprimes[0], x0=ptx0).set_color(Vanilla).set_opacity(0.5)
 
             else:
                 # spacelike case:
                 ptx0 = np.sqrt(ptcoords[0]**2 - ptcoords[1]**2)
-                pt_hyp_piece = hyperbolapiece(ptcoords[0], ptprimes[0], x0=ptx0).set_color(Vanilla).set_opacity(0.3)
+                pt_hyp_piece = hyperbolapiece(ptcoords[0], ptprimes[0], x0=ptx0).set_color(SteelBlue).set_opacity(0.5)
 
             animations.append(self.camera.frame.animate(run_time=6).shift(UP+RIGHT).scale(1.1))
             animations.append(MoveAlongPath(doti, pt_hyp_piece, run_time=8, rate_func=linear))
@@ -2288,16 +2422,16 @@ class LorentzTransform(MovingCameraScene):
 
         animations.append(Transform(xcopy, xpax, run_time=12, rate_func=linear))
         animations.append(Transform(ycopy, tpax, run_time=12, rate_func=linear))
-        animations.append(ax.x_axis.animate(run_time=12, rate_func=linear).set_opacity(0.3))
-        animations.append(ax.y_axis.animate(run_time=12, rate_func=linear).set_opacity(0.3))
-        animations.append(xlabel.animate(run_time=12, rate_func=linear).set_opacity(0.3))
-        animations.append(tlabel.animate(run_time=12, rate_func=linear).set_opacity(0.3))
+        # animations.append(ax.x_axis.animate(run_time=12, rate_func=linear).set_opacity(0.3))
+        # animations.append(ax.y_axis.animate(run_time=12, rate_func=linear).set_opacity(0.3))
+        # animations.append(xlabel.animate(run_time=12, rate_func=linear).set_opacity(0.3))
+        # animations.append(tlabel.animate(run_time=12, rate_func=linear).set_opacity(0.3))
 
             
         self.play(*animations)
 
-        xplabel = MathTex("x'").move_to(xcopy.get_end()).shift(RIGHT*0.3).set_color(SteelBlue)
-        tplabel = MathTex("t'").move_to(ycopy.get_end()).shift(UP*0.3).set_color(SteelBlue)
+        xplabel = MathTex("x'").move_to(xcopy.get_end()).shift(RIGHT*0.3).set_color(LemonOrange)
+        tplabel = MathTex("t'").move_to(ycopy.get_end()).shift(UP*0.3).set_color(LemonOrange)
         self.play(Write(xplabel), Write(tplabel))
         # self.play(colormations)
 
@@ -4833,5 +4967,31 @@ class tpeq0(Scene):
         
         eq1 = MathTex("t'=0").set_color(pcolor1).scale(1.5)
         self.add(eq1)
+
+
+
+class Trainposeqs(Scene):
+    def construct(self):
+        self.play(Write(MathTex("x' = 0").set_color(pcolor1)))
+        self.wait(5)
+
+
+class Trainposeqs1(Scene):
+    def construct(self):
+        self.play(Write(MathTex("x' = L").set_color(pcolor1)))
+        self.wait(5)
+
+
+class Trainposeqs2(Scene):
+    def construct(self):
+        self.play(Write(MathTex("x = L + vt").set_color(Vanilla)))
+        self.wait(5)
+
+
+class Trainposeqs3(Scene):
+    def construct(self):
+        self.play(Write(MathTex("x = vt").set_color(Vanilla)))
+        self.wait(5)
+
 
 
