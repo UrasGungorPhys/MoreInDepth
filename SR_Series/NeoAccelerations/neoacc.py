@@ -225,7 +225,7 @@ def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.35, spacing=0.35, length_r
     tlen = tp.get_length()
     grid = VGroup()
 
-    for i in range(1, int(tlen/spacing)+1):
+    for i in range(1, int(tlen/spacing)):
         offset = i*spacing
         if offset >= tlen*0.96:
             break
@@ -239,7 +239,7 @@ def lorentz_grid(xp, tp, colorchoice, opacitychoice=0.35, spacing=0.35, length_r
             )
         )
 
-    for i in range(1, int(xlen/spacing)+1):
+    for i in range(1, int(xlen/spacing)):
         offset = i*spacing
         if offset >= xlen*0.96:
             break
@@ -379,376 +379,6 @@ class Intro(MovingCameraScene):
         # self.play(v.animate.set_value(0.6), run_time=1.5)
         self.wait(5)
 
-
-
-class CameramenPlateau(MovingCameraScene):
-    def construct(self):
-        # self.camera.background_color = BGBlue1
-        # Background stars:
-        stars = VGroup()
-        for i in range(1000):
-            xs = np.random.uniform(-10,150)
-            ys = np.random.uniform(-10,10)
-            r = np.random.uniform(0.25,0.08)
-            stari = Dot(point=[xs,ys,0], radius=0.01, color=WHITE)
-            stars.add(stari)
-
-        # self.play(FadeIn(stars))
-
-        
-        dot1 = ImageMobject("rocket.png").scale(0.2).shift(LEFT*5)
-        dot1ghost = dot1.copy().set_opacity(0)
-        startpos = dot1.get_center()
-
-
-        def insertcam(t, v, vtracker, cam, vcam, enter, exit, camframev0, framedelta=30):
-            v=0.1
-            
-            camframeanim = self.camera.frame.animate(run_time=frame_time,rate_func=linear).shift(RIGHT*camframev0)
-            # vlabelpos = always_redraw(lambda: Dot().move_to(cam.get_corner(DR)).shift(LEFT+UP).set_opacity(0))
-            # if t>=enter+framedelta-2 == False:  # make it yellow instead in that range.
-            # vl = always_redraw(lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v").set_color(propercolor).move_to(vlabelpos.get_center()))
-
-            # if t==enter:   
-            #     # self.add(vlabelpos)
-            #     # self.add(vl)
-                    
-            #Fade in
-            if enter<=t<=enter+int(framedelta/3):
-                opacity = (t-(enter))/10  # start from 0.1, increase +0.1 each iteration up to enter+10
-                camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_stroke(opacity=opacity).set_fill(opacity=0),
-                                         vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v),
-                                         camframeanim)
-                
-            else:
-                camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam),
-                                         vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v),
-                                         camframeanim)
-
-            if enter+math.floor(framedelta/2)<=t<=enter+math.ceil(framedelta*5/6):
-                vcamframe = (cam.get_x() - self.camera.frame.get_x())/10 + vcam
-                # camframeanim = self.camera.frame.animate(run_time=frame_time*10, rate_func=linear).move_to(cam1.get_center()).scale(0.7)
-                camframeanim = self.camera.frame.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcamframe).scale(0.98)
-                camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam), 
-                                         vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v), camframeanim)
-
-            if enter+int(5*framedelta/6)< t<= exit-int(framedelta/3)+1:
-                camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam))
-                                         
-                if t >= enter + framedelta - 2:
-                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(LemonOrange))
-                                             
-                    # vl = always_redraw(lambda: MathTex("v_f = v").set_color(LemonOrange).move_to(vlabelpos.get_center()))
-                if t >= enter+ framedelta + 4:
-                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(Vanilla))
-                                             
-
-                camframeanim = self.camera.frame.animate(run_time=frame_time,rate_func=linear).shift(RIGHT*vcam)
-                camanim = AnimationGroup(camanim, camframeanim, vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v))
-
-
-            if exit-int(framedelta/3)+1 < t<= exit:
-                fadeout = (exit - t)/9
-                camframeanim = self.camera.frame.animate(run_time=frame_time,rate_func=linear).shift(RIGHT*vcam).scale(1/0.98)
-                camanim = cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_stroke(opacity=fadeout).set_fill(opacity=0)
-                camanim = AnimationGroup(camanim, camframeanim, vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v))
-
-            if t>exit:
-                camframeanim = self.camera.frame.animate(run_time=frame_time,rate_func=linear).shift(RIGHT*vcam)
-                camanim=camframeanim
-            
-            self.play(AnimationGroup(mainanim, camanim))
-            
-            if t==exit:
-                self.remove(cam)
-                self.remove(vl)
-                # self.remove(vlabelpos)
-
-        v0 = 0.1
-        a0 = 0.003
-        N=340
-        frame_time = 0.15
-        enter_cam1 = 40
-        exit_cam1 = 90
-        enter_cam2 = 95
-        exit_cam2 = 145
-        enter_cam3 = 150
-        exit_cam3 = 182
-        enter_cam4 = 183
-        exit_cam4 = 208
-        enter_cam5 = 210
-        exit_cam5=228
-        enter_cam6 = 229
-        exit_cam6 = 247
-        enter_cam7 = 248
-        exit_cam7 = 256
-        enter_cams = 257
-        resultcam = 280
-        # first get x's in a preliminary loop:
-        deltaxs = []
-        velocities = []
-        for t in range(N):
-            # have the acceleration be zero for odd first digits of t, like between 10-20
-            if int(str(t)[0])%2 == 0:
-                if t < 10:
-                    a=a0
-                    continue
-
-                a = a0
-            else:
-                a = 0
-
-
-            v = t*a +v0
-            deltaxs.append(RIGHT*v)
-            velocities.append(v)
-
-        cami_added=False # for later
-        for t in range(N):
-            # have the acceleration be zero for odd first digits of t, like between 10-20
-            if int(str(t)[0])%2 == 0:
-                if t < 10:
-                    a=a0
-                    continue
-
-                a = a0
-            else:
-                a = 0
-            v = t*a +v0
-            # self.play(dot1.animate(run_time=0.1, rate_func=linear).shift(RIGHT*v))
-            mainanim = dot1.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*v)
-            dot1ghost.shift(RIGHT*v)
-
-            if enter_cam1 <= t < enter_cam2:
-
-                if t == enter_cam1:
-                    framedelta = 30
-                    vcam1 = velocities[enter_cam1+framedelta]
-                    deltavs = np.sum(velocities[enter_cam1:enter_cam1+framedelta])
-                    deltaLEFT = framedelta*vcam1 - deltavs
-                    cam1 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam1/v)
-                    vlabelpos = always_redraw(lambda: Dot(cam1.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                    lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam1+ framedelta + 4 >=t >= enter_cam1 + framedelta - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam1+ framedelta + 4 >= t >= enter_cam1 + framedelta - 2 else propercolor)
-                    .move_to(vlabelpos.get_center()))
-
-                    self.add(vlabelpos)
-                    self.add(vl)
-                    
-
-                if t==enter_cam1+ framedelta + 5:
-                    self.remove(vl)
-                    self.add(vl)
-
-                insertcam(t, v, vtracker, cam1, vcam1, enter_cam1, exit_cam1, 0)
-                vtracker=ValueTracker(vcam1/v)
-                
-
-
-            elif enter_cam2 <= t < enter_cam3:
-
-                if t == enter_cam2:
-                    framedelta = 30
-                    vcam2 = velocities[enter_cam2+framedelta]
-                    deltavs = np.sum(velocities[enter_cam2:enter_cam2+framedelta])
-                    deltaLEFT = framedelta*vcam2 - deltavs
-                    cam2 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam2/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam2.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam2+ framedelta + 4 >=t >= enter_cam2 + framedelta - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam2+ framedelta + 4 >= t >= enter_cam2 + framedelta - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )
-                    self.add(vlabelpos)
-                    self.add(vl)
-                    
-                if t==enter_cam2+ framedelta + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                    
-                
-                insertcam(t, v, vtracker, cam2, vcam2, enter_cam2, exit_cam2, vcam1)
-                vtracker=ValueTracker(vcam2/v)
-                
-
-
-            elif enter_cam3 <= t < enter_cam4:
-
-                if t == enter_cam3:
-                    framedelta3 = 24
-                    vcam3 = velocities[enter_cam3+framedelta3]
-                    deltavs = np.sum(velocities[enter_cam3:enter_cam3+framedelta3])
-                    deltaLEFT = framedelta3*vcam3 - deltavs
-                    cam3 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam3/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam3.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam3+ framedelta3 + 4 >=t >= enter_cam3 + framedelta3 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam3+ framedelta3 + 4 >= t >= enter_cam3 + framedelta3 - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )
-                    self.add(vlabelpos)
-                    self.add(vl)
-                    
-                if t==enter_cam3+ framedelta3 + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                
-                insertcam(t, v, vtracker, cam3, vcam3, enter_cam3, exit_cam3, vcam2, framedelta=framedelta3)
-                vtracker=ValueTracker(vcam3/v)
-                
-
-
-            elif enter_cam4 <= t < enter_cam5:
-
-                if t == enter_cam4:
-                    framedelta4 = 15
-                    vcam4 = velocities[enter_cam4+framedelta4]
-                    deltavs = np.sum(velocities[enter_cam4:enter_cam4+framedelta4])
-                    deltaLEFT = framedelta4*vcam4 - deltavs
-                    cam4 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam4/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam4.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam4+ framedelta4 + 4 >= t >= enter_cam4 + framedelta4 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam4+ framedelta4 + 4 >= t >= enter_cam4 + framedelta4 - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )   
-                    
-                    self.add(vlabelpos)
-                    self.add(vl)
-                    
-                if t==enter_cam4+ framedelta4 + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                
-                insertcam(t, v, vtracker, cam4, vcam4, enter_cam4, exit_cam4, vcam3, framedelta=framedelta4)
-                vtracker=ValueTracker(vcam4/v)
-                
-
-
-            elif enter_cam5 <= t < enter_cam6:
-
-                if t == enter_cam5:
-                    framedelta5 = 9
-                    vcam5 = velocities[enter_cam5+framedelta5]
-                    deltavs = np.sum(velocities[enter_cam5:enter_cam5+framedelta5])
-                    deltaLEFT = framedelta5*vcam5 - deltavs
-                    cam5 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam5/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam5.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam5+ framedelta5 + 4 >=t >= enter_cam5 + framedelta5 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam5+ framedelta5 + 4 >= t >= enter_cam5 + framedelta5 - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )
-                    
-                self.add(vlabelpos)
-                self.add(vl)
-                if t==enter_cam5+ framedelta5 + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                
-                insertcam(t, v, vtracker, cam5, vcam5, enter_cam5, exit_cam5, vcam4, framedelta=framedelta5)
-                vtracker=ValueTracker(vcam5/v)
-                
-
-
-            elif enter_cam6 <= t < enter_cam7:
-
-                if t == enter_cam6:
-                    framedelta6 = 9
-                    vcam6 = velocities[enter_cam6+framedelta6]
-                    deltavs = np.sum(velocities[enter_cam6:enter_cam6+framedelta6])
-                    deltaLEFT = framedelta6*vcam6 - deltavs
-                    cam6 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam6/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam6.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam6+ framedelta6 + 4 >=t >= enter_cam6 + framedelta6 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam6+ framedelta6 + 4 >= t >= enter_cam6 + framedelta6 - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )   
-                    
-                self.add(vlabelpos)
-                self.add(vl)
-                if t==enter_cam6+ framedelta6 + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                
-                insertcam(t, v, vtracker, cam6, vcam6, enter_cam6, exit_cam6, vcam5, framedelta=framedelta6)
-                vtracker=ValueTracker(vcam6/v)
-                
-
-            
-            elif enter_cam7 <= t < enter_cams:
-
-                if t == enter_cam7:
-                    framedelta7 = 9
-                    vcam7 = velocities[enter_cam7+framedelta7]
-                    deltavs = np.sum(velocities[enter_cam7:enter_cam7+framedelta7])
-                    deltaLEFT = framedelta7*vcam7 - deltavs
-                    cam7 = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_opacity(0).set_color(Vanilla)
-                    vtracker = ValueTracker(vcam7/v)
-                    vlabelpos = always_redraw(lambda: Dot().move_to(cam7.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
-                    vl = always_redraw(
-                lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam7+ framedelta7 + 4 >=t >= enter_cam7 + framedelta7 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam7+ framedelta7 + 4 >= t >= enter_cam7 + framedelta7 - 2 else propercolor)
-                    .move_to(vlabelpos.get_center())
-            )   
-                self.add(vlabelpos)
-                self.add(vl)
-                if t==enter_cam7+ framedelta7 + 5:
-                    self.remove(vl)
-                    self.add(vl)
-                
-                
-                insertcam(t, v, vtracker, cam7, vcam7, enter_cam7, exit_cam7, vcam6, framedelta=framedelta7)
-                vtracker=ValueTracker(vcam7/v)
-                
-                
-            else:
-                camframeanimation = self.camera.frame.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*v)
-
-                if enter_cams <= t <= resultcam:
-                    if cami_added:
-                        cami_old = cami
-                        cami_animation = cami_old.animate(run_time=frame_time, rate_func=linear).set_stroke(opacity=0.4).set_fill(opacity=0).set_color(Vanilla)  # previous cams get faded a bit
-
-                        if t%3 ==0:
-                            caminew = Create(cami, run_time=frame_time)
-                            self.play(AnimationGroup(mainanim, cami_animation, camframeanimation))
-
-                        else:
-                            self.play(mainanim, camframeanimation)
-                    
-                    cami = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_color(LemonOrange)
-                    if cami_added == False:
-                            caminew = Create(cami, run_time=frame_time)
-                            self.play(AnimationGroup(mainanim, camframeanimation))
-                            cami_added=True
-                            continue
-                    
-                    if t==resultcam:
-                        finalcam = Rectangle(height=6, width=8).move_to(dot1.get_center()).shift(LEFT*deltaLEFT).set_color(LemonOrange)
-
-                
-                elif t>resultcam:
-                    
-                    camframeanimation = self.camera.frame.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*v)
-                    finalcamanimation = finalcam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*v)
-                    self.play(AnimationGroup(mainanim, finalcamanimation, camframeanimation))
-
-                else:
-                    self.play(mainanim, camframeanimation)
 
 
 
@@ -1103,6 +733,197 @@ class Cameramen(MovingCameraScene):
 
                 else:
                     self.play(mainanim, camframeanimation)
+
+
+
+# Change the fadeout timings of the camera frames, make the transition to the acceleration smoother that way.
+class CameramenPlateaus(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        rng = np.random.default_rng(12)
+        stars = VGroup()
+        for i in range(1400):
+            xs = rng.uniform(-24, 140)
+            ys = rng.uniform(-8, 8)
+            radius = rng.uniform(0.006, 0.018)
+            opacity = rng.uniform(0.25, 0.8)
+            stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
+            stars.add(stari)
+
+        def make_rocket():
+            rocket_path = os.path.join(os.path.dirname(__file__), "rocket.png")
+            if os.path.exists(rocket_path):
+                return ImageMobject(rocket_path).scale(0.2)
+
+            body = RoundedRectangle(width=0.95, height=0.34, corner_radius=0.16)
+            body.set_fill(SteelBlue, opacity=1).set_stroke(Vanilla, width=1.4, opacity=0.8)
+            nose = Triangle(fill_opacity=1, color=Vanilla).scale(0.18).rotate(-PI/2)
+            nose.next_to(body, RIGHT, buff=-0.01)
+            flame = Polygon(
+                body.get_left(),
+                body.get_left()+LEFT*0.45+UP*0.13,
+                body.get_left()+LEFT*0.45+DOWN*0.13,
+                color=LemonOrange,
+                fill_opacity=0.85,
+                stroke_opacity=0,
+            )
+            return VGroup(flame, body, nose)
+
+        rocket = make_rocket().move_to(LEFT*5+DOWN*0.25)
+        self.camera.frame.set(width=10.5).move_to(rocket.get_center())
+
+        self.add(stars)
+        self.play(FadeIn(rocket), run_time=0.8)
+        self.wait(0.25)
+
+        after_images = Group(*[
+            rocket.copy().set_opacity(0)
+            for i in range(4)
+        ])
+        after_images_active = False
+        rocket_history = [rocket.get_center().copy() for i in range(len(after_images)+1)]
+
+        def show_after_images():
+            nonlocal after_images_active
+            if not after_images_active:
+                self.add(after_images)
+                self.add(rocket)
+                after_images_active = True
+
+        def hide_after_images():
+            nonlocal after_images_active
+            if after_images_active:
+                for after_image in after_images:
+                    after_image.set_opacity(0)
+                self.remove(after_images)
+                after_images_active = False
+
+        def after_image_steps(opacity_scale):
+            if opacity_scale <= 1e-3 and not after_images_active:
+                return None
+            steps = []
+            base_opacities = [0.28, 0.18, 0.10, 0.05]
+            for i, after_image in enumerate(after_images):
+                history_index = max(0, len(rocket_history)-2-i)
+                steps.append((after_image, rocket_history[history_index], base_opacities[i]*opacity_scale))
+            return steps
+
+        def make_camera_frame(center):
+            frame = Rectangle(height=4.8, width=7.2)
+            frame.move_to(center)
+            frame.set_fill(opacity=0)
+            frame.set_stroke(color=Vanilla, opacity=0.95, width=3)
+            return frame
+
+        frame_time = 1/15
+        rocket_velocity = 0.045
+        coast_frames = [18, 21, 24, 27, 30, 33, 36]
+        acceleration_frames = [18, 16, 14, 12, 11, 10, 9]
+        catch_frames = [10, 10, 9, 8, 7, 7, 7]
+        accelerations = [0.0040, 0.0032, 0.0027, 0.0022, 0.0018, 0.0015, 0.0012]
+        final_glide_frames = int(6/frame_time)
+
+        current_frame = make_camera_frame(rocket.get_center())
+        current_frame.set_stroke(opacity=0)
+        self.add(current_frame)
+
+        def frame_alpha(t):
+            t = np.clip(t, 0, 1)
+            return t*t*(3-2*t)
+
+        def play_kinematic_step(rocket_dx, scene_camera_dx, frame_steps, after_steps=None):
+            animations = [
+                rocket.animate.shift(RIGHT*rocket_dx),
+                self.camera.frame.animate.shift(RIGHT*scene_camera_dx),
+            ]
+            for frame, frame_dx, opacity, color, width in frame_steps:
+                frame_anim = frame.animate.shift(RIGHT*frame_dx)
+                frame_anim = frame_anim.set_stroke(color=color, opacity=opacity, width=width)
+                frame_anim = frame_anim.set_fill(opacity=0)
+                animations.append(frame_anim)
+            if after_steps is not None:
+                for after_image, center, opacity in after_steps:
+                    animations.append(after_image.animate.move_to(center).set_opacity(opacity))
+            self.play(*animations, run_time=frame_time, rate_func=linear)
+            rocket_history.append(rocket.get_center().copy())
+            if len(rocket_history) > len(after_images)+4:
+                rocket_history.pop(0)
+
+        for cycle, acceleration in enumerate(accelerations):
+            for q in range(coast_frames[cycle]):
+                frame_opacity = 0.92
+                if cycle == 0:
+                    frame_opacity *= frame_alpha((q+1)/8)
+                play_kinematic_step(
+                    rocket_velocity,
+                    rocket_velocity,
+                    [(current_frame, rocket_velocity, frame_opacity, Vanilla, 3)],
+                    after_image_steps(0),
+                )
+
+            old_velocity = rocket_velocity
+            show_after_images()
+
+            for q in range(acceleration_frames[cycle]):
+                alpha = (q+1)/acceleration_frames[cycle]
+                rocket_velocity += acceleration
+                rocket_dx = rocket_velocity
+
+                if alpha < 0.34:
+                    scene_camera_dx = old_velocity
+                else:
+                    offset = rocket.get_x()-self.camera.frame.get_x()
+                    remaining_steps = acceleration_frames[cycle]-q
+                    scene_camera_dx = rocket_velocity+offset/remaining_steps
+
+                old_frame_opacity = 0.92*(1-frame_alpha(alpha))
+                play_kinematic_step(
+                    rocket_dx,
+                    scene_camera_dx,
+                    [(current_frame, old_velocity, old_frame_opacity, Vanilla, 3)],
+                    after_image_steps(frame_alpha(alpha)),
+                )
+
+            self.remove(current_frame)
+
+            new_frame = make_camera_frame(rocket.get_center()+LEFT*1.25)
+            new_frame.set_stroke(opacity=0)
+            self.add(new_frame)
+
+            for q in range(catch_frames[cycle]):
+                alpha = frame_alpha((q+1)/catch_frames[cycle])
+                remaining_steps = catch_frames[cycle]-q
+                rocket_dx = rocket_velocity
+                camera_offset = rocket.get_x()-self.camera.frame.get_x()
+                scene_camera_dx = rocket_velocity+camera_offset/remaining_steps
+                frame_offset = rocket.get_x()-new_frame.get_x()
+                new_frame_dx = rocket_velocity+frame_offset/remaining_steps
+                color = interpolate_color(Vanilla, LemonOrange, alpha)
+
+                play_kinematic_step(
+                    rocket_dx,
+                    scene_camera_dx,
+                    [(new_frame, new_frame_dx, 0.92*alpha, color, 3+alpha)],
+                    after_image_steps(1-alpha),
+                )
+
+            hide_after_images()
+            new_frame.move_to(rocket.get_center())
+            new_frame.set_stroke(color=Vanilla, opacity=0.92, width=3)
+            current_frame = new_frame
+
+        for q in range(final_glide_frames):
+            alpha = frame_alpha(min(1, (q+1)/8))
+            color = interpolate_color(Vanilla, LemonOrange, alpha)
+            play_kinematic_step(
+                rocket_velocity,
+                rocket_velocity,
+                [(current_frame, rocket_velocity, 0.95, color, 3+alpha)],
+                after_image_steps(0),
+            )
+
+
 
 
 
@@ -1889,10 +1710,10 @@ class LikeCalculus(MovingCameraScene):
         self.play(Write(xlabel), Write(tlabel))
         self.play(Create(grid1), Create(lightray), run_time=1.2)
 
-        plateau_slope = 1.35
+        plateau_slope = 1.55
         left_span = 0.7
         right_span = 1.2
-        plateau_span = 5.25
+        plateau_span = 4.25
         first_plateau_span = plateau_span
         root = np.sqrt(plateau_slope**2-1)
         hyp_radius = left_span/(plateau_slope/root-1)
@@ -1911,9 +1732,48 @@ class LikeCalculus(MovingCameraScene):
             right_shift = y2-join_height
             return x1, y1, x2, y2, right_center, right_shift
 
-        def right_hyperbola(x, plateau_span):
+        def raw_right_hyperbola(x, plateau_span):
             x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
             return np.sqrt(np.maximum((x-right_center)**2-hyp_radius**2, 0))+right_shift
+
+        right_end_slope = 1.0
+
+        def right_curve_shape(x, plateau_span):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            end_x = x2+right_span
+            end_y = raw_right_hyperbola(end_x, plateau_span)
+            t = np.clip((x-x2)/right_span, 0, 1)
+
+            h00 = 2*t**3 - 3*t**2 + 1
+            h10 = t**3 - 2*t**2 + t
+            h01 = -2*t**3 + 3*t**2
+            h11 = t**3 - t**2
+            y = (
+                h00*y2
+                + h10*right_span*plateau_slope
+                + h01*end_y
+                + h11*right_span*right_end_slope
+            )
+
+            dh00 = 6*t**2 - 6*t
+            dh10 = 3*t**2 - 4*t + 1
+            dh01 = -6*t**2 + 6*t
+            dh11 = 3*t**2 - 2*t
+            slope = (
+                dh00*y2
+                + dh10*right_span*plateau_slope
+                + dh01*end_y
+                + dh11*right_span*right_end_slope
+            )/right_span
+            return y, slope
+
+        def right_hyperbola(x, plateau_span):
+            y, slope = right_curve_shape(x, plateau_span)
+            return y
+
+        def right_hyperbola_slope(x, plateau_span):
+            y, slope = right_curve_shape(x, plateau_span)
+            return slope
 
         def straight_plateau_point(span, alpha):
             x = alpha*span
@@ -1935,9 +1795,8 @@ class LikeCalculus(MovingCameraScene):
             return vector/np.linalg.norm(vector)
 
         def local_dirs_from_slope(slope):
-            if slope > 40:
-                return unit_scene_vector(2, 0), unit_scene_vector(0, 2)
-            return unit_scene_vector(2, 2/slope), unit_scene_vector(2, 2*slope)
+            safe_slope = np.clip(slope, 1e-3, 1000)
+            return unit_scene_vector(1, 1/safe_slope), unit_scene_vector(1, safe_slope)
 
         def plateau_dirs():
             return local_dirs_from_slope(plateau_slope)
@@ -1969,7 +1828,7 @@ class LikeCalculus(MovingCameraScene):
                 ).set_color(pcolor1)
             )
             moving_grid = always_redraw(
-                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.5, length_ratio=0.82)
+                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.45, length_ratio=0.82)
             )
             tplabel = always_redraw(
                 lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UR, buff=0.05)
@@ -2068,10 +1927,23 @@ class LikeCalculus(MovingCameraScene):
         self.wait(0.4)
 
         full_x = ValueTracker(0)
+        left_end_axis_angle = np.arctan(1/plateau_slope)
+
+        def left_motion_x(progress):
+            alpha = np.clip(progress/x1, 0, 1)
+            if alpha <= 0:
+                return 0
+            if alpha >= 1:
+                return x1
+
+            axis_angle = alpha*left_end_axis_angle
+            slope = 1/np.tan(axis_angle)
+            return hyp_radius*(slope/np.sqrt(slope**2-1)-1)
 
         def full_point(x):
             if x <= x1:
-                return ax.c2p(x, left_hyperbola(x))
+                motion_x = left_motion_x(x)
+                return ax.c2p(motion_x, left_hyperbola(motion_x))
             if x <= x2:
                 return ax.c2p(x, y1+plateau_slope*(x-x1))
             return ax.c2p(x, right_hyperbola(x, plateau_span))
@@ -2084,11 +1956,10 @@ class LikeCalculus(MovingCameraScene):
 
         def full_slope(x):
             if x <= x1:
-                return left_hyperbola_slope(x)
+                return left_hyperbola_slope(left_motion_x(x))
             if x <= x2:
                 return plateau_slope
-            y = np.sqrt(np.maximum((x-right_center)**2-hyp_radius**2, 0))
-            return (x-right_center)/max(y, 0.001)
+            return right_hyperbola_slope(x, plateau_span)
 
         def full_xhat(x):
             xhat, that = local_dirs_from_slope(full_slope(x))
@@ -2118,6 +1989,124 @@ class LikeCalculus(MovingCameraScene):
         self.play(full_x.animate.set_value(x1), run_time=5.2, rate_func=rate_functions.ease_in_out_sine)
         self.play(full_x.animate.set_value(x2), run_time=3.3, rate_func=linear)
         self.play(full_x.animate.set_value(x2+right_span), run_time=3.4, rate_func=linear)
+
+        self.wait(2)
+
+
+
+class LikeCalculusFollowup(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGtry
+
+        ax = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 10, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        ax.shift(ORIGIN-ax.c2p(0, 0))
+        self.camera.frame.scale(1.18).move_to(ax.c2p(5.0, 5.0))
+
+        og = ax.c2p(0, 0)
+        grid = homemade_grid(ax, [0, 10], [0, 10], propercolor, opacitychoice=0.18)
+        lightray = DashedLine(og, ax.c2p(9.7, 9.7), stroke_width=3).set_color(lightcolor).set_opacity(0.75)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.45).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        self.play(
+            Create(ax),
+            Create(grid),
+            Create(lightray),
+            Write(xlabel),
+            Write(tlabel),
+            run_time=1.2,
+            rate_func=smooth,
+        )
+
+        def make_curve(points, color, stroke_width=6):
+            curve = VMobject()
+            curve.set_points_smoothly(points)
+            curve.set_stroke(color, width=stroke_width)
+            return curve
+
+        def unit_scene_vector(dx, dt):
+            vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
+            return vector/np.linalg.norm(vector)
+
+        rapidities = [0, 0.42, 0.64, 0.85, 1.04, 1.22]
+        plateau_lengths = [0.8, 0.9, 1.0, 1.1, 1.2]
+        accel_radius = 0.72
+        x, t = 0, 0
+        segments = []
+        plateau_data = []
+
+        for i, plateau_length in enumerate(plateau_lengths):
+            eta0 = rapidities[i]
+            eta1 = rapidities[i+1]
+            arc_points = [
+                ax.c2p(
+                    x+accel_radius*(np.cosh(eta)-np.cosh(eta0)),
+                    t+accel_radius*(np.sinh(eta)-np.sinh(eta0)),
+                )
+                for eta in np.linspace(eta0, eta1, 36)
+            ]
+            arc = make_curve(arc_points, SteelBlue)
+            segments.append(arc)
+
+            x = x+accel_radius*(np.cosh(eta1)-np.cosh(eta0))
+            t = t+accel_radius*(np.sinh(eta1)-np.sinh(eta0))
+            plateau_slope = np.cosh(eta1)/np.sinh(eta1)
+            plateau_start = (x, t)
+            plateau_end = (x+plateau_length, t+plateau_slope*plateau_length)
+            plateau = Line(
+                ax.c2p(*plateau_start),
+                ax.c2p(*plateau_end),
+                stroke_width=6,
+                color=pcolor1,
+            )
+            segments.append(plateau)
+            plateau_data.append((plateau_start, plateau_slope))
+            x, t = plateau_end
+
+        for segment in segments:
+            self.play(Create(segment), run_time=0.72, rate_func=rate_functions.ease_in_out_sine)
+
+        self.wait(0.75)
+
+        def small_lorentz_axes(point, slope):
+            origin = ax.c2p(*point)
+            axis_length = 0.58
+            tp_dir = unit_scene_vector(1, slope)
+            xp_dir = unit_scene_vector(1, 1/slope)
+            tp = Arrow(
+                origin,
+                origin+tp_dir*axis_length,
+                buff=0,
+                stroke_width=4,
+                max_tip_length_to_length_ratio=0.18,
+            ).set_color(pcolor1).set_z_index(5)
+            xp = Arrow(
+                origin,
+                origin+xp_dir*axis_length,
+                buff=0,
+                stroke_width=4,
+                max_tip_length_to_length_ratio=0.18,
+            ).set_color(pcolor1).set_z_index(5)
+            return VGroup(tp, xp)
+
+        local_axes = [
+            small_lorentz_axes(point, slope)
+            for point, slope in plateau_data
+        ]
+        self.play(
+            LaggedStart(
+                *[Create(axes) for axes in local_axes],
+                lag_ratio=0.22,
+            ),
+            run_time=2.2,
+            rate_func=smooth,
+        )
 
         self.wait(2)
 
