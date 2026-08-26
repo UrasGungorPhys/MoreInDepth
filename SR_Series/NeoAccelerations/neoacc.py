@@ -260,11 +260,11 @@ def reverse_rate_func(func):
     return lambda t: func(1 - t)
 
 
-def makeclock(time, scale):
+def makeclock(time, scale, color=gndcolor1):
 
     clockscale = scale
     clockimg = ImageMobject("clock.png").scale(clockscale)
-    clockbg = always_redraw(lambda: Circle(radius=3, fill_opacity=1).set_color(gndcolor1).move_to(clockimg.get_center()).scale(clockscale))
+    clockbg = always_redraw(lambda: Circle(radius=3, fill_opacity=1).set_color(color).move_to(clockimg.get_center()).scale(clockscale))
     clockcenter = always_redraw(lambda:Dot(clockimg.get_center()).set_color(BLACK).scale(1.4).scale(clockscale))
     clock12 = always_redraw(lambda:Dot(clockimg.get_top()).shift(DOWN*0.85*clockscale).set_opacity(0))
     clocklinetip = Dot(clock12.get_center()).set_color(VibrantGreen).set_opacity(0)
@@ -381,6 +381,167 @@ class Intro(MovingCameraScene):
 
 
 
+class StarryBackground(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        rng = np.random.default_rng(18)
+        stars = VGroup()
+        for i in range(1200):
+            xs = rng.uniform(-20, 46)
+            ys = rng.uniform(-8, 8)
+            radius = rng.uniform(0.006, 0.018)
+            opacity = rng.uniform(0.25, 0.8)
+            stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
+            stars.add(stari)
+
+        
+
+        def make_camera_frame(center):
+            frame = Rectangle(height=4.8, width=7.2)
+            frame.move_to(center)
+            frame.set_fill(opacity=0)
+            frame.set_stroke(color=Vanilla, opacity=0.95, width=3)
+            return frame
+
+        rocket = ImageMobject("rocket.png").scale(0.2)
+        self.camera.frame.set(width=10.5).move_to(rocket.get_center())
+
+        self.add(stars)
+
+
+
+class CameramenPlateausLite(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        rng = np.random.default_rng(18)
+        stars = VGroup()
+        for i in range(1200):
+            xs = rng.uniform(-20, 46)
+            ys = rng.uniform(-8, 8)
+            radius = rng.uniform(0.006, 0.018)
+            opacity = rng.uniform(0.25, 0.8)
+            stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
+            stars.add(stari)
+
+        
+
+        def make_camera_frame(center):
+            frame = Rectangle(height=4.8, width=7.2)
+            frame.move_to(center)
+            frame.set_fill(opacity=0)
+            frame.set_stroke(color=Vanilla, opacity=0.95, width=3)
+            return frame
+
+        rocket = ImageMobject("rocket.png").scale(0.2)
+        self.camera.frame.set(width=10.5).move_to(rocket.get_center())
+
+        # self.add(stars)
+        self.play(FadeIn(rocket), run_time=0.7)
+        self.wait(0.2)
+
+        after_images = Group(*[
+            rocket.copy().set_opacity(0)
+            for i in range(4)
+        ])
+        after_images_active = False
+        rocket_history = [rocket.get_center().copy() for i in range(len(after_images)+1)]
+
+        def show_after_images():
+            nonlocal after_images_active
+            if not after_images_active:
+                self.add(after_images)
+                self.add(rocket)
+                after_images_active = True
+
+        def hide_after_images():
+            nonlocal after_images_active
+            if after_images_active:
+                for after_image in after_images:
+                    after_image.set_opacity(0)
+                self.remove(after_images)
+                after_images_active = False
+
+        def frame_alpha(t):
+            t = np.clip(t, 0, 1)
+            return t*t*(3-2*t)
+
+        def after_image_steps(opacity_scale):
+            if opacity_scale <= 1e-3 and not after_images_active:
+                return None
+            base_opacities = [0.28, 0.18, 0.10, 0.05]
+            steps = []
+            for i, after_image in enumerate(after_images):
+                history_index = max(0, len(rocket_history)-2-i)
+                steps.append((after_image, rocket_history[history_index], base_opacities[i]*opacity_scale))
+            return steps
+
+        frame_time = 1/15
+        acceleration_frames = int(5/frame_time)
+        catch_frames = int(2/frame_time)
+        coast_frames = int(20/frame_time)
+        rocket_velocity = 0.035
+        scene_camera_velocity = rocket_velocity
+        acceleration = 0.00125
+
+        def play_kinematic_step(rocket_dx, scene_camera_dx, frame_steps=None, after_steps=None):
+            animations = [
+                rocket.animate.shift(RIGHT*rocket_dx),
+                self.camera.frame.animate.shift(RIGHT*scene_camera_dx),
+            ]
+            if frame_steps is not None:
+                for frame, frame_dx, opacity, color, width in frame_steps:
+                    frame_anim = frame.animate.shift(RIGHT*frame_dx)
+                    frame_anim = frame_anim.set_stroke(color=color, opacity=opacity, width=width)
+                    frame_anim = frame_anim.set_fill(opacity=0)
+                    animations.append(frame_anim)
+            if after_steps is not None:
+                for after_image, center, opacity in after_steps:
+                    animations.append(after_image.animate.move_to(center).set_opacity(opacity))
+            self.play(*animations, run_time=frame_time, rate_func=linear)
+            rocket_history.append(rocket.get_center().copy())
+            if len(rocket_history) > len(after_images)+4:
+                rocket_history.pop(0)
+
+        show_after_images()
+        for q in range(acceleration_frames):
+            alpha = (q+1)/acceleration_frames
+            rocket_velocity += acceleration
+            play_kinematic_step(
+                rocket_velocity,
+                scene_camera_velocity,
+                after_steps=after_image_steps(frame_alpha(alpha)),
+            )
+
+        catch_offset = rocket.get_x()-self.camera.frame.get_x()
+        for q in range(catch_frames):
+            prev_alpha = frame_alpha(q/catch_frames)
+            alpha = frame_alpha((q+1)/catch_frames)
+            scene_camera_dx = rocket_velocity+catch_offset*(alpha-prev_alpha)
+            play_kinematic_step(
+                rocket_velocity,
+                scene_camera_dx,
+                after_steps=after_image_steps(1-alpha),
+            )
+
+        hide_after_images()
+
+        camera_frame = make_camera_frame(rocket.get_center())
+        camera_frame.set_stroke(opacity=0)
+        self.add(camera_frame)
+
+        for q in range(coast_frames):
+            frame_opacity = 0.95*frame_alpha((q+1)/14)
+            play_kinematic_step(
+                rocket_velocity,
+                rocket_velocity,
+                [(camera_frame, rocket_velocity, frame_opacity, Vanilla, 3)],
+                after_image_steps(0),
+            )
+
+
+
 
 # 97.5%
 # Fix the yellowed value tracker not moving
@@ -398,7 +559,7 @@ class Cameramen(MovingCameraScene):
             stari = Dot(point=[xs,ys,0], radius=0.01, color=WHITE)
             stars.add(stari)
 
-        # self.play(FadeIn(stars))
+        self.play(FadeIn(stars))
 
         
         dot1 = ImageMobject("rocket.png").scale(0.2).shift(LEFT*5)
@@ -736,6 +897,8 @@ class Cameramen(MovingCameraScene):
 
 
 
+
+
 # Change the fadeout timings of the camera frames, make the transition to the acceleration smoother that way.
 class CameramenPlateaus(MovingCameraScene):
     def construct(self):
@@ -751,26 +914,26 @@ class CameramenPlateaus(MovingCameraScene):
             stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
             stars.add(stari)
 
-        def make_rocket():
-            rocket_path = os.path.join(os.path.dirname(__file__), "rocket.png")
-            if os.path.exists(rocket_path):
-                return ImageMobject(rocket_path).scale(0.2)
+        # def make_rocket():
+        #     rocket_path = os.path.join(os.path.dirname(__file__), "rocket.png")
+        #     if os.path.exists(rocket_path):
+        #         return ImageMobject(rocket_path).scale(0.2)
 
-            body = RoundedRectangle(width=0.95, height=0.34, corner_radius=0.16)
-            body.set_fill(SteelBlue, opacity=1).set_stroke(Vanilla, width=1.4, opacity=0.8)
-            nose = Triangle(fill_opacity=1, color=Vanilla).scale(0.18).rotate(-PI/2)
-            nose.next_to(body, RIGHT, buff=-0.01)
-            flame = Polygon(
-                body.get_left(),
-                body.get_left()+LEFT*0.45+UP*0.13,
-                body.get_left()+LEFT*0.45+DOWN*0.13,
-                color=LemonOrange,
-                fill_opacity=0.85,
-                stroke_opacity=0,
-            )
-            return VGroup(flame, body, nose)
+        #     body = RoundedRectangle(width=0.95, height=0.34, corner_radius=0.16)
+        #     body.set_fill(SteelBlue, opacity=1).set_stroke(Vanilla, width=1.4, opacity=0.8)
+        #     nose = Triangle(fill_opacity=1, color=Vanilla).scale(0.18).rotate(-PI/2)
+        #     nose.next_to(body, RIGHT, buff=-0.01)
+        #     flame = Polygon(
+        #         body.get_left(),
+        #         body.get_left()+LEFT*0.45+UP*0.13,
+        #         body.get_left()+LEFT*0.45+DOWN*0.13,
+        #         color=LemonOrange,
+        #         fill_opacity=0.85,
+        #         stroke_opacity=0,
+        #     )
+        #     return VGroup(flame, body, nose)
 
-        rocket = make_rocket().move_to(LEFT*5+DOWN*0.25)
+        rocket = ImageMobject("rocket.png").scale(0.2)
         self.camera.frame.set(width=10.5).move_to(rocket.get_center())
 
         self.add(stars)
@@ -947,7 +1110,7 @@ class Hyperbolic(MovingCameraScene):
         self.camera.background_color = BGtry
         ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
         x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
-        self.camera.frame.scale(1.22).shift(DOWN*0.1)
+        self.camera.frame.scale(1.24).shift(DOWN*0.1)
         og = ORIGIN
         OG = ORIGIN
 
@@ -1170,11 +1333,13 @@ class Hyperbolic(MovingCameraScene):
         self.camera.frame.save_state()
         self.play(
             self.camera.frame.animate()
-            .scale(1.15))
+            .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
         tglines = VGroup()
         for i in range(len(tgxs)-1):
 
             xi = tgxs[i+1]
+            if i == 11:
+                self.play(Restore(self.camera.frame))
             
             self.play(
                 MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
@@ -1192,7 +1357,7 @@ class Hyperbolic(MovingCameraScene):
             tglines.add(tglinei)
 
         self.wait(3)
-        self.play(FadeOut(tglines, acc1), Restore(self.camera.frame), run_time=1.4)
+        self.play(FadeOut(tglines, acc1), run_time=1.4)
         self.wait(3)
         
 
@@ -2680,46 +2845,54 @@ class CameramenLorentzAxes2(MovingCameraScene):
         self.wait(5)
 
 
-# 0%
-class Horizon(MovingCameraScene):
+
+class Drawingxp(MovingCameraScene):
     def construct(self):
-    # Chapters:
-    # 1 - Show that the negative and positive hyperbolas asymptotes intersect on the x axis.
-    # 2 - Show that all x' axes also intersect this point.
-    # 3 - Show that this means the point is frozen in time for the accelerator.
-    # 4 - 
+        # Plan for the scene, subchapters.
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
 
 
-    ############################################### Initializing ########################################################
+        ############################################### Initializing ########################################################
         #################### Set up axes
-        self.camera.background_color = BGBlue1
-        ax = Axes(x_range=[-6,10,1], y_range=[0,10,1], 
-        x_length=9, y_length=6,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.background_color = BGtry
+        ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.24).shift(DOWN*0.1)
+        og = ORIGIN
+        OG = ORIGIN
 
 
-        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
 
         xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor).set_opacity(0.5)
         xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor)
-        OG = ax.c2p(0,0)
         xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
         that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
 
-        self.play(Create(ax), Write(ax_labels), run_time=1)
-
+        self.play(Create(ax), Write(xlabel), Write(tlabel), run_time=1)
+        grids = homemade_grid(ax, [0,10], [0,10], gndcolor1, opacitychoice=0.25)
+        self.play(Create(grids))
         #################### Set up hyperbola, draw worldline
-        hypx0 = 3
+        hypx0 = 2
         hypxf = 8
         center=-2
         def hyperbola(x, x0=hypx0, center=-2):
-            return np.sqrt((x+center)**2 - (x0)**2)
-        
-        def nhyperbola(x, x0=hypx0, center=-2):
-            return -np.sqrt((x+center)**2 - (x0)**2)
+            return np.sqrt((x-center)**2 - (x0)**2)
         
 
-        def hyperbolapiece(x1, x2, opacity=0, x0=hypx0, center=-2):
-            wlpiece = ax.plot(lambda x: np.sqrt((x+center)**2 - (x0+center)**2), x_range=[x1, x2, 0.01]).set_opacity(opacity).set_color(SchoolBus)
+        def nhyperbola(x, x0=hypx0, center=-2):
+            return -np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=-2):
+            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=5).set_color(phighlight2)
             return wlpiece
         
         def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
@@ -2727,7 +2900,7 @@ class Horizon(MovingCameraScene):
             x1 = np.sqrt(t1**2 +x0**2)
             x2 = np.sqrt(t2**2 +x0**2)
 
-            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01]).set_opacity(opacity).set_color(SchoolBus)
+            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
             return wlpiece
         
         P = Dot(ax.c2p(center, 0, 0))
@@ -2739,6 +2912,8 @@ class Horizon(MovingCameraScene):
 
             return xp
         
+        
+        
         def gettprime(x, P_point=P):
             hyp_point = ax.c2p(x, hyperbola(x))
             intline = Line(P_point, hyp_point)
@@ -2748,19 +2923,1631 @@ class Horizon(MovingCameraScene):
 
             return tp
 
-        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0-center,hypxf-center,0.01]).set_color(NewOrange2)
+        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=4.5).set_color(gndcolor2)
+
+        def get_hypaxesx(x, x0=hypx0, length=1.2):
+            pt1 = hyperbola(x-0.01)
+            pt2 = hyperbola(x+0.01)
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Line(OG, ax.c2p(length*2, length*slope*2)).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Line(OG, OG+xpdir*frameline.get_length()).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            lightline = DashedLine(ax.c2p(x, hyperbola(x)), ax.c2p(x+length*2, hyperbola(x)+length*2)).set_color(lightcolor)
+
+            return xpaxis
 
 
-        ###################################### Scenes ##############################################
-        # 1 - Show that the negative and positive hyperbolas asymptotes intersect on the x axis.
-        # 2 - Show that all x' axes also intersect this point.
-        # 3 - Show that this means the point is frozen in time for the accelerator.
-        # 4 - 
-        ############# Chapter 1:
-        ############# Chapter 2:
-        ############# Chapter 3:
-        ############# Chapter 4:
-        ############# Chapter 5:
+        ############################################ Scenes ###############################################
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
+
+        ############## Chapter 1: The hyperbolic worldline
+        print(type(rate_functions))
+        self.play(Create(worldline), run_time=1.2)
+        x0 = hypx0+center
+
+        # 1st piece
+        wlpiece1 = hyperbolapiece(x0, x0+1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+        # self.play(Create(wlpiece1), run_time=1)
+
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp1tprj), Create(wlp1xprj))
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        # self.wait(2)
+
+        # fadeouts1 = [wlpiece1, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+
+        # self.play(FadeOut(*fadeouts1))
+
+        # Second piece
+        wlpiece1 = hyperbolapiece(x0+1.6, x0+3)
+        # self.play(Create(wlpiece1), run_time=1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+
+        wlp0xprj = DashedLine(wlp0, wlp0x).set_color(gndhighlight)
+        wlp0tprj = DashedLine(wlp0, wlp0t).set_color(gndhighlight)
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp0tprj), Create(wlp0xprj),Create(wlp1tprj), Create(wlp1xprj))
+        
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        # self.wait(2)
+
+        # fadeouts1 = [wlpiece1, wlp0tprj, wlp0xprj, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+        # self.play(FadeOut(*fadeouts1))
+
+        # 3rd piece
+        wlpiece1 = hyperbolapiece(x0+4.8, x0+6.5)
+        # self.play(Create(wlpiece1), run_time=1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+
+        wlp0xprj = DashedLine(wlp0, wlp0x).set_color(gndhighlight)
+        wlp0tprj = DashedLine(wlp0, wlp0t).set_color(gndhighlight)
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp0tprj), Create(wlp0xprj),Create(wlp1tprj), Create(wlp1xprj))
+        
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        
+
+        fadeouts1 = [wlpiece1, wlp0tprj, wlp0xprj, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+        # self.play(FadeOut(*fadeouts1))
+        # self.wait(2)
+
+        ############## Chapter 2: Tangent line as the cameraman
+
+        tangent_length = 3.2
+
+        def get_tgline(x):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+
+            # Normalize in scene space so every tangent has exactly the same
+            # visible length, independent of its slope.
+            tangent_direction = ax.c2p(x+1, y0+slope, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            half_length = tangent_length/2
+            tgline0 = Line(
+                tangent_point-tangent_direction*half_length,
+                tangent_point+tangent_direction*half_length,
+                stroke_width=5,
+                color=LemonOrange,
+            )
+            tgdot = Dot(tangent_point, radius=0.055).set_color(Vanilla)
+
+            return [tgdot, tgline0]
+        
+
+        def getxprimeline(x, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+        
+        def getxprimelineext(x, i, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+
+        
+            xp0 = Line(hyp_point-xphat, 
+                      hyp_point+xphat*15, stroke_width=5,
+                color=NewOrange2, buff=0)
+            
+            stopperline = Line(ax.c2p(9.5, 0), ax.c2p(9.5, 20))
+            xpend = gli(xp0, stopperline)
+            xp = Line(hyp_point-xphat, 
+                      xpend, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+        
+
+        def getxprimeline2(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+
+
+        def get_tprime_axis(x):
+            tangent_point = ax.c2p(x, hyperbola(x), 0)
+            tangent_direction = get_tgline(x)[1].get_unit_vector()
+            tprime_axis_length = 2.3
+            return Arrow(
+                tangent_point,
+                tangent_point+tangent_direction*tprime_axis_length,
+                buff=0,
+                stroke_width=5,
+                color=LightBlue,
+                tip_length=0.16,
+                max_tip_length_to_length_ratio=0.10,
+            )
+
+        def spring(t):
+            """Damped overshoot ending exactly at the target mobject."""
+            return 1-np.exp(-6*t)*np.cos(4.5*np.pi*t)
+        
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+
+        # Add two closely spaced samples before the old starting point and three
+        # more samples farther along the flatter, upper part of the hyperbola.
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+        self.camera.frame.save_state()
+        self.play(
+            self.camera.frame.animate()
+            .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
+        tglines = VGroup()
+        xplines = VGroup()
+        for i in range(len(tgxs)-1):
+
+            xi = tgxs[i+1]
+            if i == 11:
+                self.play(Restore(self.camera.frame))
+            
+            self.play(
+                MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                run_time=0.5,
+                rate_func=linear,
+            )
+            
+            tglinei = get_tgline(xi)[1]
+            xplinei = getxprimeline(xi)
+            self.play(Create(tglinei), run_time=0.18)
+            self.play(Create(xplinei), run_time=0.18)
+            self.wait(0.3)
+            self.play(
+                tglinei.animate.set_stroke(width=3, opacity=0.15),
+                xplinei.animate.set_stroke(width=3, opacity=0.15),
+                run_time=0.12,
+            )
+            xplines.add(xplinei)
+            tglines.add(tglinei)
+
+        self.wait(3)
+        self.play(FadeOut(tglines, acc1, xplines), run_time=1.4)
+        self.wait(3)
+
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+        self.camera.frame.save_state()
+        self.play(
+            self.camera.frame.animate()
+            .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
+        # tglines = VGroup()
+        xplines = VGroup()
+        keeps = [0, 4, 10, 14]
+        rmlines = VGroup()
+        for i in range(len(tgxs)-1):
+
+            xi = tgxs[i+1]
+            if i == 11:
+                self.play(Restore(self.camera.frame))
+            
+            self.play(
+                MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                run_time=0.5,
+                rate_func=linear,
+            )
+            
+            # tglinei = get_tgline(xi)[1]
+            xplinei = getxprimelineext(xi, i)
+            # self.play(Create(tglinei), run_time=0.18)
+            
+            self.wait(0.3)
+            self.play(
+                xplinei.animate.set_stroke(width=3, opacity=0.35),
+                run_time=0.12,
+            )
+            
+            if i not in keeps:
+                rmlines.add(xplinei)
+            else:
+                xplines.add(xplinei)
+
+            
+
+
+        
+        self.wait(5)
+        self.play(FadeOut(rmlines), FadeOut(acc1))
+
+        self.wait(2)
+
+        line0clock = makeclock(1, 0.09).move_to(xplines[0].get_start()+xplines[0].get_unit_vector())
+        line0clock1 = line0clock.copy().move_to(xplines[0].get_center())
+        line0clock2 = line0clock.copy().move_to(xplines[0].get_end()-xplines[0].get_unit_vector())
+
+        line1clock = makeclock(3, 0.09).move_to(xplines[1].get_start()+xplines[1].get_unit_vector())
+        line1clock1 = line1clock.copy().move_to(xplines[1].get_center())
+        line1clock2 = line1clock.copy().move_to(xplines[1].get_end()-xplines[1].get_unit_vector())
+
+        line2clock = makeclock(5, 0.09).move_to(xplines[2].get_start()+xplines[2].get_unit_vector())
+        line2clock1 = line2clock.copy().move_to(xplines[2].get_center())
+        line2clock2 = line2clock.copy().move_to(xplines[2].get_end()-xplines[2].get_unit_vector())
+
+        line3clock = makeclock(7, 0.09).move_to(xplines[3].get_start()+xplines[3].get_unit_vector())
+        line3clock1 = line3clock.copy().move_to(xplines[3].get_center())
+        line3clock2 = line3clock.copy().move_to(xplines[3].get_end()-xplines[3].get_unit_vector())
+
+        self.play(FadeIn(line0clock))
+        self.wait(2)
+        self.play(FadeIn(line0clock1))
+        self.play(FadeIn(line0clock2))
+
+        self.wait(3)
+        self.play(FadeIn(line1clock))
+
+        self.wait()
+        self.play(FadeIn(line1clock1))
+        self.play(FadeIn(line1clock2))
+
+        self.wait()
+        self.play(FadeIn(line2clock))
+        self.play(FadeIn(line2clock1))
+        self.play(FadeIn(line2clock2))
+
+        self.play(FadeIn(line3clock))
+        self.play(FadeIn(line3clock1))
+        self.play(FadeIn(line3clock2))
+
+        
+
+        self.wait(5)
+
+
+
+class Horizon(MovingCameraScene):
+    def construct(self):
+        # Plan for the scene, subchapters.
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
+
+
+        ############################################### Initializing ########################################################
+        #################### Set up axes
+        self.camera.background_color = BGtry
+        ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.24).shift(DOWN*0.1)
+        og = ORIGIN
+        OG = ORIGIN
+
+
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor).set_opacity(0.5)
+        xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor)
+        xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
+        that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
+
+        self.play(Create(ax), Write(xlabel), Write(tlabel), run_time=1)
+        grids = homemade_grid(ax, [0,10], [0,10], gndcolor1, opacitychoice=0.25)
+        self.play(Create(grids))
+        #################### Set up hyperbola, draw worldline
+        hypx0 = 2
+        hypxf = 8
+        center=-2
+        def hyperbola(x, x0=hypx0, center=-2):
+            return np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def nhyperbola(x, x0=hypx0, center=-2):
+            return -np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=-2):
+            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=5).set_color(phighlight2)
+            return wlpiece
+        
+        def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
+            #t^2 = sqrt(x^2 - x0^2)
+            x1 = np.sqrt(t1**2 +x0**2)
+            x2 = np.sqrt(t2**2 +x0**2)
+
+            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+        
+        P = Dot(ax.c2p(center, 0, 0))
+        def getxprime(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            xp = Arrow(hyp_point, hyp_point+xphat*3, buff=0)
+
+            return xp
+        
+        
+        
+        def gettprime(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            tphat = np.array([xphat[1], xphat[0], 0])
+            tp = Arrow(hyp_point, hyp_point+tphat*3, buff=0)
+
+            return tp
+
+        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=4.5).set_color(gndcolor2)
+
+        def get_hypaxesx(x, x0=hypx0, length=1.2):
+            pt1 = hyperbola(x-0.01)
+            pt2 = hyperbola(x+0.01)
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Line(OG, ax.c2p(length*2, length*slope*2)).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Line(OG, OG+xpdir*frameline.get_length()).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            lightline = DashedLine(ax.c2p(x, hyperbola(x)), ax.c2p(x+length*2, hyperbola(x)+length*2)).set_color(lightcolor)
+
+            return xpaxis
+
+
+        ############################################ Scenes ###############################################
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
+
+        ############## Chapter 1: The hyperbolic worldline
+        print(type(rate_functions))
+        self.play(Create(worldline), run_time=1.2)
+        x0 = hypx0+center
+
+        # 1st piece
+        wlpiece1 = hyperbolapiece(x0, x0+1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+        # self.play(Create(wlpiece1), run_time=1)
+
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp1tprj), Create(wlp1xprj))
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        # self.wait(2)
+
+        # fadeouts1 = [wlpiece1, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+
+        # self.play(FadeOut(*fadeouts1))
+
+        # Second piece
+        wlpiece1 = hyperbolapiece(x0+1.6, x0+3)
+        # self.play(Create(wlpiece1), run_time=1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+
+        wlp0xprj = DashedLine(wlp0, wlp0x).set_color(gndhighlight)
+        wlp0tprj = DashedLine(wlp0, wlp0t).set_color(gndhighlight)
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp0tprj), Create(wlp0xprj),Create(wlp1tprj), Create(wlp1xprj))
+        
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        # self.wait(2)
+
+        # fadeouts1 = [wlpiece1, wlp0tprj, wlp0xprj, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+        # self.play(FadeOut(*fadeouts1))
+
+        # 3rd piece
+        wlpiece1 = hyperbolapiece(x0+4.8, x0+6.5)
+        # self.play(Create(wlpiece1), run_time=1)
+        wlp0 = Dot(wlpiece1.get_start())
+        wlp1 = Dot(wlpiece1.get_end())
+
+        wlp0t = gli(ax.y_axis, Line(wlp0.get_center(), wlp0.get_center() - xhat*10))
+        wlp1t = gli(ax.y_axis, Line(wlp1.get_center(), wlp1.get_center() - xhat*10))
+        
+
+        wlp0x = gli(ax.x_axis, Line(wlp0.get_center(), wlp0.get_center() - that*10))
+        wlp1x = gli(ax.x_axis, Line(wlp1.get_center(), wlp1.get_center() - that*10))
+
+        wlp0xprj = DashedLine(wlp0, wlp0x).set_color(gndhighlight)
+        wlp0tprj = DashedLine(wlp0, wlp0t).set_color(gndhighlight)
+        wlp1xprj = DashedLine(wlp1, wlp1x).set_color(gndhighlight)
+        wlp1tprj = DashedLine(wlp1, wlp1t).set_color(gndhighlight)
+
+        # self.play(Create(wlp0tprj), Create(wlp0xprj),Create(wlp1tprj), Create(wlp1xprj))
+        
+        delt = Line(wlp0t, wlp1t, stroke_width=6).set_color(gndhighlight)
+        deltlabel = MathTex(r"\Delta t").set_color(gndhighlight).move_to(delt.get_center()).shift(LEFT*0.5)
+        delx = Line(wlp0x, wlp1x, stroke_width=6).set_color(gndhighlight)
+        delxlabel = MathTex(r"\Delta x").set_color(gndhighlight).move_to(delx.get_center()).shift(DOWN*0.5)
+        # self.play(Create(delt), Create(delx), Write(deltlabel), Write(delxlabel), run_time=1.5)
+        
+
+        fadeouts1 = [wlpiece1, wlp0tprj, wlp0xprj, wlp1tprj, wlp1xprj, delt, delx, deltlabel, delxlabel]
+        # self.play(FadeOut(*fadeouts1))
+        # self.wait(2)
+
+        ############## Chapter 2: Tangent line as the cameraman
+
+        tangent_length = 3.2
+
+        def get_tgline(x):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+
+            # Normalize in scene space so every tangent has exactly the same
+            # visible length, independent of its slope.
+            tangent_direction = ax.c2p(x+1, y0+slope, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            half_length = tangent_length/2
+            tgline0 = Line(
+                tangent_point-tangent_direction*half_length,
+                tangent_point+tangent_direction*half_length,
+                stroke_width=5,
+                color=LemonOrange,
+            )
+            tgdot = Dot(tangent_point, radius=0.055).set_color(Vanilla)
+
+            return [tgdot, tgline0]
+        
+
+        def getxprimeline(x, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+        
+        def getxprimelineext(x, i, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+            mult = 5
+            if i > 10:
+                mult += (i - 10)/3.8
+            if i > 15:
+                mult += (i-15)/1.75
+        
+            xp = Line(hyp_point-xphat*mult, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+        
+
+        def getxprimeline2(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+
+
+        def get_tprime_axis(x):
+            tangent_point = ax.c2p(x, hyperbola(x), 0)
+            tangent_direction = get_tgline(x)[1].get_unit_vector()
+            tprime_axis_length = 2.3
+            return Arrow(
+                tangent_point,
+                tangent_point+tangent_direction*tprime_axis_length,
+                buff=0,
+                stroke_width=5,
+                color=LightBlue,
+                tip_length=0.16,
+                max_tip_length_to_length_ratio=0.10,
+            )
+
+        def spring(t):
+            """Damped overshoot ending exactly at the target mobject."""
+            return 1-np.exp(-6*t)*np.cos(4.5*np.pi*t)
+        
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+
+        # Add two closely spaced samples before the old starting point and three
+        # more samples farther along the flatter, upper part of the hyperbola.
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+        self.camera.frame.save_state()
+        self.play(
+            self.camera.frame.animate()
+            .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
+        # tglines = VGroup()
+        xplines = VGroup()
+        for i in range(len(tgxs)-1):
+
+            xi = tgxs[i+1]
+            if i == 11:
+                self.play(Restore(self.camera.frame))
+            
+            self.play(
+                MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                run_time=0.5,
+                rate_func=linear,
+            )
+            
+            # tglinei = get_tgline(xi)[1]
+            xplinei = getxprimelineext(xi, i)
+            # self.play(Create(tglinei), run_time=0.18)
+            self.play(Create(xplinei), run_time=0.18)
+            self.wait(0.3)
+            self.play(
+                # tglinei.animate.set_stroke(width=3, opacity=0.35),
+                xplinei.animate.set_stroke(width=3, opacity=0.35),
+                run_time=0.12,
+            )
+            xplines.add(xplinei)
+            # tglines.add(tglinei)
+        self.wait(5)
+
+
+
+# 80%
+class OverlapProblem1(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        acchyp = lambda x : np.sqrt((x+6)**2 - 6**2)+3
+
+        def get_hypaxest(x, x0=6.0, length=1.2):
+            pt1 = acchyp(np.clip(x-0.01, 0.00, 1000))
+            pt2 = acchyp(np.clip(x, 0.01, 1000)+0.01)
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Arrow(OG, ax.c2p(length*2, length*slope*2), buff=0).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Line(OG, OG+xpdir*frameline.get_length()).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+
+            return frameline
+        
+
+        def get_hypaxesx(x, x0=6, length=1.2):
+            pt1 = acchyp(np.clip(x-0.01, 0.01, 1000))
+            pt2 = acchyp(np.clip(x, 0.01, 1000)+0.01)
+
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Line(OG, ax.c2p(length*2, length*slope*2)).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Arrow(OG, OG+xpdir*frameline.get_length(), buff=0).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            return xpaxis
+        
+        
+
+        ax = Axes(x_range=[0,20,1], y_range=[0,20,1], 
+        x_length=6, y_length=6,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+
+        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(20-0.2,20-0.2)).set_color(lightcolor).set_opacity(0.5)
+        OG=ax.c2p(0,0)
+
+        wl1 = Line(ax.c2p(0,-1), ax.c2p(0,3), stroke_width=6).set_color(MistyBlue)
+
+        accx = 2
+        acchyp = lambda x : np.sqrt((x+6)**2 - 6**2)+3
+        accwl = ax.plot(acchyp, x_range=[0,accx,0.01], stroke_width=6).set_color(NewOrange1)
+
+        lastpiece = Line(ax.c2p(accx-0.01, acchyp(accx-0.01)),ax.c2p(accx, acchyp(accx))).set_color(OrangeOrange)
+        wl2slope = glslope(lastpiece)
+        accwlend = ax.p2c(accwl.get_end())
+
+
+        wl2 = Line(accwl.get_end(), ax.c2p(accwlend[0]+6, 6*wl2slope+accwlend[1]), stroke_width=6).set_color(LemonOrange)
+        
+        wl2tphat = np.array([wl2slope, 1, 0])
+        wl2xphat = np.array([1, wl2slope, 0])
+
+        def hyperbolapieceT(t1, t2, opacity=0, x0=6, const=3):
+            #t = sqrt((x+x0)**2 - x0**2)+const
+            x1 = np.sqrt((t1-const)**2 +x0**2) - x0
+            x2 = np.sqrt((t2-const)**2 +x0**2) - x0
+
+            wlpiece = ax.plot(lambda x : np.sqrt((x+6)**2 - 6**2)+3, x_range=[x1, x2, 0.01]).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+
+
+        self.play(Create(ax), Create(xct))
+        self.play(Write(ax_labels))
+        self.play(Create(wl1))
+        self.play(Create(accwl))
+        self.play(Create(wl2))
+        
+        wldot = Dot(wl1.get_start())
+        
+        tpaxis0=Arrow(wldot.get_center(), wldot.get_center()+UP*2.4)
+        tpaxis1 = always_redraw(lambda: Arrow(wldot.get_center(), wldot.get_center()+UP*2.4, buff=0
+                                              ).set_color(LightBlue))
+        xpaxis1 = always_redraw(lambda: Arrow(wldot.get_center(), wldot.get_center()+RIGHT*2.4, buff=0
+                                              ).set_color(LightBlue))
+
+
+        self.play(Create(wldot))
+        self.wait()
+        self.play(Create(tpaxis1), Create(xpaxis1))
+        
+        self.play(MoveAlongPath(wldot, wl1), rate_func=linear, run_time=2.5)
+        
+        tpaxisA0 = get_hypaxest(ax.p2c(wldot.get_center())[0]).set_opacity(0)
+        tpaxisA = always_redraw(lambda: get_hypaxest(ax.p2c(wldot.get_center())[0]))
+        xpaxisA = always_redraw(lambda: get_hypaxesx(ax.p2c(wldot.get_center())[0]))
+
+        self.play(ReplacementTransform(tpaxis1, tpaxisA), ReplacementTransform(xpaxis1, xpaxisA), run_time=0.5)
+        
+        self.play(MoveAlongPath(wldot, accwl), rate_func=linear, run_time=4)
+
+        tpaxis20 = get_hypaxest(ax.p2c(wldot.get_center())[0]).copy()
+        
+        xpaxis20 = get_hypaxesx(ax.p2c(wldot.get_center())[0]).copy()
+
+        tpaxis2 = always_redraw(lambda: tpaxis20.move_to(wldot.get_center()).shift(tpaxis20.get_unit_vector()*tpaxis20.get_length()/2))
+        xpaxis2 = always_redraw(lambda: xpaxis20.move_to(wldot.get_center()).shift(xpaxis20.get_unit_vector()*xpaxis20.get_length()/2))
+        self.remove(*[tpaxisA, xpaxisA])
+        self.add(tpaxis2, xpaxis2)
+
+        # tpaxis2 = always_redraw(lambda:Arrow(wldot.get_center(), wldot.get_center()+wl2tphat*2, buff=0))
+        # xpaxis2 = always_redraw(lambda:Arrow(wldot.get_center(), wldot.get_center()+wl2xphat*2, buff=0))
+        # or try moving the old axes along with wldot since they don't change anymore
+        self.play(MoveAlongPath(wldot, wl2, rate_func=linear, run_time=3))
+        self.wait(5)
+
+
+
+# Smooth transition with grids
+class OverlapProblem2(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        hyp_radius = 6
+        hyp_y_offset = 3
+        accx = 2
+
+        def acchyp(x, x0=hyp_radius, const=hyp_y_offset):
+            return np.sqrt(np.maximum((x+x0)**2 - x0**2, 0)) + const
+
+        def hyperbola_velocity(x, x0=hyp_radius):
+            hyp_height = acchyp(x) - hyp_y_offset
+            return hyp_height/(x+x0)
+        
+
+        ax = Axes(x_range=[0,20,1], y_range=[0,20,1], 
+        x_length=6, y_length=6,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+
+        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(18-0.2,18-0.2)).set_color(lightcolor).set_opacity(0.5)
+        OG=ax.c2p(0,0)
+        local_axis_length = 2.4
+
+        def unit_scene_vector(dx, dt):
+            vector = ax.c2p(dx, dt) - ax.c2p(0, 0)
+            return vector/np.linalg.norm(vector)
+
+        def local_dirs_from_velocity(v):
+            v = np.clip(v, 0, 0.999)
+            xhat = unit_scene_vector(1, v)
+            that = unit_scene_vector(v, 1)
+            return xhat, that
+
+        def local_axis(origin, direction, length=local_axis_length):
+            return Arrow(
+                origin,
+                origin+direction*length,
+                buff=0,
+                stroke_width=5,
+                max_tip_length_to_length_ratio=0.12,
+            ).set_color(LightBlue)
+
+        def get_hypaxest(x, length=1.2):
+            x = np.clip(x, 0, accx)
+            xhat, that = local_dirs_from_velocity(hyperbola_velocity(x))
+            return local_axis(ax.c2p(x, acchyp(x)), that, length=length*2)
+        
+
+        def get_hypaxesx(x, length=1.2):
+            x = np.clip(x, 0, accx)
+            xhat, that = local_dirs_from_velocity(hyperbola_velocity(x))
+            return local_axis(ax.c2p(x, acchyp(x)), xhat, length=length*2)
+
+        wl1 = Line(ax.c2p(0,0), ax.c2p(0,3), stroke_width=8).set_color(MistyBlue)
+
+        accwl = ax.plot(acchyp, x_range=[0,accx,0.01], stroke_width=8).set_color(NewOrange1)
+
+        final_velocity = hyperbola_velocity(accx)
+        wl2slope = 1/final_velocity
+        accwlend = ax.p2c(accwl.get_end())
+
+        wl2 = Line(accwl.get_end(), ax.c2p(accwlend[0]+6, 6*wl2slope+accwlend[1]), stroke_width=8).set_color(LemonOrange)
+        
+        wl2xphat, wl2tphat = local_dirs_from_velocity(final_velocity)
+
+        def hyperbolapieceT(t1, t2, opacity=0, x0=6, const=3):
+            #t = sqrt((x+x0)**2 - x0**2)+const
+            x1 = np.sqrt((t1-const)**2 +x0**2) - x0
+            x2 = np.sqrt((t2-const)**2 +x0**2) - x0
+
+            wlpiece = ax.plot(lambda x : np.sqrt((x+6)**2 - 6**2)+3, x_range=[x1, x2, 0.01]).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+ 
+
+        def get_grids(xhat, that, gdog, whichax, N=10, spacing_ratio=1, length=5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                xline = Line(start=gdog + i*that - length*xhat - length*that,
+                            end=gdog + i*that + length*xhat- length*that, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+
+                tline = Line(start=gdog + i*xhat - length*that - length*xhat,
+                            end=gdog + i*xhat + length*that- length*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                manual_grids0x.add(xline)
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+                
+
+        # Let's get grids
+
+
+        self.play(Create(ax), Create(xct))
+        self.play(Write(ax_labels))
+        self.play(Create(wl1))
+        self.play(Create(accwl))
+        self.play(Create(wl2))
+        self.wait()
+        self.play(xct.animate.set_opacity(0.3), ax.animate.set_opacity(0.2), run_time=2)
+
+        # One local frame rides all three pieces of the worldline, so there is no
+        # visual reset at either join.
+        wldot = Dot(wl1.get_start())
+        xphat1, tphat1 = local_dirs_from_velocity(0)
+
+        def current_frame_dirs():
+            x = ax.p2c(wldot.get_center())[0]
+            if x <= 1e-4:
+                return xphat1, tphat1
+            if x >= accx:
+                return wl2xphat, wl2tphat
+            return local_dirs_from_velocity(hyperbola_velocity(x))
+
+        def current_axis(whichax):
+            xhat, that = current_frame_dirs()
+            if whichax == 0:
+                return local_axis(wldot.get_center(), xhat)
+            return local_axis(wldot.get_center(), that)
+
+        def current_grids(whichax):
+            xhat, that = current_frame_dirs()
+            return get_grids(
+                xhat,
+                that,
+                wldot.get_center(),
+                whichax=whichax,
+                N=10,
+                spacing_ratio=1,
+                length=5,
+            )
+
+        tpaxis = always_redraw(lambda: current_axis(1))
+        xpaxis = always_redraw(lambda: current_axis(0))
+        moving_xgrids = always_redraw(lambda: current_grids(0))
+        moving_tgrids = always_redraw(lambda: current_grids(1))
+
+        self.play(Create(wldot))
+        self.wait()
+        self.play(Create(tpaxis), Create(xpaxis))
+        self.play(Create(moving_xgrids), Create(moving_tgrids))
+        
+        self.play(MoveAlongPath(wldot, wl1), rate_func=linear, run_time=2.5)
+        self.play(MoveAlongPath(wldot, accwl), rate_func=rate_functions.ease_in_out_sine, run_time=6)
+        self.play(MoveAlongPath(wldot, wl2), rate_func=linear, run_time=3.5)
+
+        self.wait(2)
+        self.play(FadeOut(wldot, moving_xgrids, moving_tgrids, tpaxis, xpaxis))
+
+        # the overlap region
+
+        def get_gridsSP(xhat, that, gdog, whichax, N=10, spacing_ratio=1/2, length=2.5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                if ii%2 ==0:
+                    xline = Line(start=gdog + i/2*that - length*xhat,
+                                end=gdog + i/2*that + length*xhat, buff=0,
+                                stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                    
+                    manual_grids0x.add(xline)
+
+                tline = Line(start=gdog + i*xhat - length*xhat,
+                            end=gdog + i*xhat + length*that- length*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+            
+
+        def get_gridsSP2(xhat, that, gdog, whichax, N=10, spacing_ratio=1/2, length=1.5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                if ii%2 ==0:
+                    xline = Line(start=gdog + i/1.8*that - length*2*xhat,
+                                end=gdog + i/1.8*that + length*xhat/3, buff=0,
+                                stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                    
+                    manual_grids0x.add(xline)
+
+                tline = Line(start=gdog + i*xhat - length*2*xhat,
+                            end=gdog + i*xhat + length*that- length*2*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+            
+
+        compgrids1x = get_gridsSP(xphat1, tphat1, OG, whichax=0)
+        compgrids1t = get_gridsSP(xphat1, tphat1, OG, whichax=1)
+
+        compgrids2x = get_gridsSP2(get_hypaxesx(ax.p2c(wl2.get_start())[0]).get_vector(),
+                                get_hypaxest(ax.p2c(wl2.get_start())[0]).get_vector(), wl2.get_start(),
+                                  whichax=0, color=Vanilla, spacing_ratio=1/3.6)
+        
+
+        compgrids2t = get_gridsSP2(get_hypaxesx(ax.p2c(wl2.get_start())[0]).get_vector(), 
+                                get_hypaxest(ax.p2c(wl2.get_start())[0]).get_vector(), wl2.get_start(), 
+                                whichax=1, color=Vanilla, spacing_ratio=1/3.6)
+
+
+        xax = Arrow(OG+LEFT*2.4, OG+RIGHT*2.4, buff=0).set_color(NewOrange1)
+        tax = Arrow(OG+DOWN*2.4, OG+UP*2.4, buff=0).set_color(NewOrange1)
+
+        xpax = Arrow(wl2.get_start()-wl2xphat*3, wl2.get_start()+wl2xphat*3, buff=0).set_color(Vanilla)
+        tpax = Arrow(wl2.get_start()-wl2tphat*3, wl2.get_start()+wl2tphat*3, buff=0).set_color(Vanilla)
+
+        self.play(Create(xax), Create(tax))
+        self.play(Create(xpax), Create(tpax))
+
+        self.play(FadeIn(*[compgrids1x, compgrids1t]))
+        self.play(FadeIn(*[compgrids2x, compgrids2t]))
+
+        self.wait(3)
+
+
+
+# 75%
+# Get to the actual lesson in overlap.
+class OverlapProblem3(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        acchyp = lambda x : np.sqrt((x+6)**2 - 6**2)+3
+
+        def get_hypaxest(x, x0=6.0, length=1.2):
+            pt1 = acchyp(np.clip(x-0.01, 0.00, 1000))
+            pt2 = acchyp(np.clip(x+0.01, 0.02, 1000))
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Arrow(OG, ax.c2p(length*2, length*slope*2), buff=0).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Line(OG, OG+xpdir*frameline.get_length()).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            return frameline
+        
+
+        def get_hypaxesx(x, x0=6, length=1.2):
+            pt1 = acchyp(np.clip(x-0.01, 0.01, 1000))
+            pt2 = acchyp(np.clip(x, 0.01, 1000)+0.01)
+
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Line(OG, ax.c2p(length*2, length*slope*2)).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Arrow(OG, OG+xpdir*frameline.get_length(), buff=0).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, acchyp(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            return xpaxis
+        
+
+        ax = Axes(x_range=[0,20,1], y_range=[0,20,1], 
+        x_length=6, y_length=6,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+
+        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(18-0.2,18-0.2)).set_color(lightcolor).set_opacity(0.5)
+        OG=ax.c2p(0,0)
+
+        wl1 = Line(ax.c2p(0,0), ax.c2p(0,3), stroke_width=8).set_color(MistyBlue)
+
+        accx = 2
+        acchyp = lambda x : np.sqrt((x+6)**2 - 6**2)+3
+        accwl = ax.plot(acchyp, x_range=[0,accx,0.01], stroke_width=8).set_color(NewOrange1)
+
+        lastpiece = Line(ax.c2p(accx-0.01, acchyp(accx-0.01)),ax.c2p(accx, acchyp(accx))).set_color(OrangeOrange)
+        wl2slope = glslope(lastpiece)
+        accwlend = ax.p2c(accwl.get_end())
+
+        wl2 = Line(accwl.get_end(), ax.c2p(accwlend[0]+6, 6*wl2slope+accwlend[1]), stroke_width=8).set_color(LemonOrange)
+        
+        wl2tphat = np.array([wl2slope, 1, 0])
+        wl2xphat = np.array([1, wl2slope, 0])
+
+        def hyperbolapieceT(t1, t2, opacity=0, x0=6, const=3):
+            #t = sqrt((x+x0)**2 - x0**2)+const
+            x1 = np.sqrt((t1-const)**2 +x0**2) - x0
+            x2 = np.sqrt((t2-const)**2 +x0**2) - x0
+
+            wlpiece = ax.plot(lambda x : np.sqrt((x+6)**2 - 6**2)+3, x_range=[x1, x2, 0.01]).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+ 
+
+        def get_grids(xhat, that, gdog, whichax, N=10, spacing_ratio=1, length=5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                xline = Line(start=gdog + i*that - length*xhat - length*that,
+                            end=gdog + i*that + length*xhat- length*that, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+
+                tline = Line(start=gdog + i*xhat - length*that - length*xhat,
+                            end=gdog + i*xhat + length*that- length*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                manual_grids0x.add(xline)
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+                
+
+        # Let's get grids
+
+
+        self.play(Create(ax), Create(xct))
+        self.play(Write(ax_labels))
+        self.play(Create(wl1))
+        self.play(Create(accwl))
+        self.play(Create(wl2))
+        self.wait()
+        self.play(xct.animate.set_opacity(0.3), ax.animate.set_opacity(0.2), run_time=2)
+
+        # wl1
+        wldot = Dot(wl1.get_start())
+
+
+        tpaxis0=Arrow(wldot.get_center(), wldot.get_center()+UP*2.4)
+        tpaxis1 = always_redraw(lambda: Arrow(wldot.get_center(), wldot.get_center()+UP*2.4, buff=0
+                                              ).set_color(LightBlue))
+        xpaxis1 = always_redraw(lambda: Arrow(wldot.get_center(), wldot.get_center()+RIGHT*2.4, buff=0
+                                              ).set_color(LightBlue))
+
+
+        tphat1 = tpaxis1.get_unit_vector()
+        xphat1 = xpaxis1.get_unit_vector()
+
+        wl1xgrids = always_redraw(lambda: get_grids(xphat1, tphat1, wldot.get_center(), whichax=0))
+        wl1tgrids = always_redraw(lambda: get_grids(xphat1, tphat1, wldot.get_center(), whichax=1))
+
+        self.play(Create(wldot))
+        self.wait()
+        self.play(Create(tpaxis1), Create(xpaxis1))
+        self.play(Create(wl1xgrids), Create(wl1tgrids))
+        
+        self.play(MoveAlongPath(wldot, wl1), rate_func=linear, run_time=2.5)
+        
+
+        # accelerated wl
+
+        tpaxisA = always_redraw(lambda: get_hypaxest(ax.p2c(wldot.get_center())[0]))
+        xpaxisA = always_redraw(lambda: get_hypaxesx(ax.p2c(wldot.get_center())[0]))
+
+        acctphat = always_redraw(lambda: get_hypaxest(ax.p2c(wldot.get_center())[0])).get_unit_vector()
+        accxphat = always_redraw(lambda: get_hypaxesx(ax.p2c(wldot.get_center())[0])).get_unit_vector()    
+        # get_hypaxest(ax.p2c(wldot.get_center())[0])
+        
+
+        accxgrids = always_redraw(lambda: get_grids(
+            get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.8/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), 
+            get_hypaxest(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.8/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), wldot.get_center(), whichax=0, N=10, spacing_ratio=1, length=5))
+
+
+        # acctgrids = always_redraw(lambda: get_grids(
+        #     get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector(), 
+        #     get_hypaxest(ax.p2c(wldot.get_center())[0]).get_vector(), 
+        #     wldot.get_center(), whichax=1, N=10, spacing_ratio=1, length=5))
+
+        acctgrids = always_redraw(lambda: get_grids(
+            get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.8/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), 
+            get_hypaxest(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.8/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), wldot.get_center(), whichax=1, N=10, spacing_ratio=1, length=5))
+        # that's the most disgusting code I've ever spawned into this world
+
+        self.play(FadeOut(*[wl1xgrids, wl1tgrids, tpaxis1, xpaxis1]))
+        self.remove(*[wl1xgrids, wl1tgrids, tpaxis1, xpaxis1])
+
+        self.play(Create(tpaxisA), Create(xpaxisA))
+        self.play(Create(accxgrids), Create(acctgrids))
+
+        self.play(MoveAlongPath(wldot, accwl), rate_func=linear, run_time=6)
+        
+        # wl2
+
+        tpaxis20 = get_hypaxest(ax.p2c(wldot.get_center())[0]).copy()
+        
+        xpaxis20 = get_hypaxesx(ax.p2c(wldot.get_center())[0]).copy()
+
+        tpaxis2 = always_redraw(lambda: tpaxis20.move_to(wldot.get_center()).shift(tpaxis20.get_unit_vector()*tpaxis20.get_length()/2))
+        xpaxis2 = always_redraw(lambda: xpaxis20.move_to(wldot.get_center()).shift(xpaxis20.get_unit_vector()*xpaxis20.get_length()/2))
+        self.remove(*[tpaxisA, xpaxisA])
+        self.add(tpaxis2, xpaxis2)
+
+        accxgrids0 = get_grids(
+            get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.6/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), 
+            get_hypaxest(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.6/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), wldot.get_center(), whichax=0, N=10, spacing_ratio=1, length=5).copy()
+
+        acctgrids0 = get_grids(
+            get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.6/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), 
+            get_hypaxest(ax.p2c(wldot.get_center())[0]).get_vector(
+            )*(1/(np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())/(
+                  np.linalg.norm(wldot.get_center()-accwl.get_end())/np.linalg.norm(accwl.get_start() - accwl.get_end())
+                  +np.linalg.norm(get_hypaxesx(ax.p2c(wldot.get_center())[0]).get_vector())*(
+                    np.linalg.norm(wldot.get_center()-accwl.get_start())*0.6/np.linalg.norm(accwl.get_start() - accwl.get_end()))
+                  ))), wldot.get_center(), whichax=1, N=10, spacing_ratio=1, length=5).copy()
+        
+
+        wl2xgrids = always_redraw(lambda: accxgrids0.move_to(wldot.get_center()).set_color(Vanilla))
+        wl2tgrids = always_redraw(lambda: acctgrids0.move_to(wldot.get_center()).set_color(Vanilla))
+        
+
+        self.play(FadeOut(*[accxgrids, acctgrids]))
+        self.remove(*[accxgrids, acctgrids])
+        self.play(FadeIn(*[wl2xgrids, wl2tgrids]))
+
+        self.play(MoveAlongPath(wldot, wl2), run_time=3.5)
+
+        self.wait(2)
+        self.play(FadeOut(*[wldot, wl2xgrids, wl2tgrids, tpaxis2, xpaxis2]))
+
+        # the overlap region
+
+        def get_gridsSP(xhat, that, gdog, whichax, N=10, spacing_ratio=1/2, length=2.5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                if ii%2 ==0:
+                    xline = Line(start=gdog + i/2*that - length*xhat,
+                                end=gdog + i/2*that + length*xhat, buff=0,
+                                stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                    
+                    manual_grids0x.add(xline)
+
+                tline = Line(start=gdog + i*xhat - length*xhat,
+                            end=gdog + i*xhat + length*that- length*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+            
+
+        def get_gridsSP2(xhat, that, gdog, whichax, N=10, spacing_ratio=1/2, length=1.5, opacity=0.7, color=NewOrange1):
+
+            manual_grids0x = VGroup()
+            manual_grids0t = VGroup()
+
+            for ii in range(1,N):
+                i=ii*spacing_ratio
+
+                if ii%2 ==0:
+                    xline = Line(start=gdog + i/1.8*that - length*2*xhat,
+                                end=gdog + i/1.8*that + length*xhat/3, buff=0,
+                                stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                    
+                    manual_grids0x.add(xline)
+
+                tline = Line(start=gdog + i*xhat - length*2*xhat,
+                            end=gdog + i*xhat + length*that- length*2*xhat, buff=0,
+                            stroke_color=color, stroke_opacity=opacity,stroke_width=2)
+                
+                
+                manual_grids0t.add(tline)
+
+            if whichax==0:
+                return manual_grids0x
+            if whichax==1:
+                return manual_grids0t
+            
+
+        compgrids1x = get_gridsSP(xphat1, tphat1, OG, whichax=0)
+        compgrids1t = get_gridsSP(xphat1, tphat1, OG, whichax=1)
+
+        compgrids2x = get_gridsSP2(get_hypaxesx(ax.p2c(wl2.get_start())[0]).get_vector(),
+                                get_hypaxest(ax.p2c(wl2.get_start())[0]).get_vector(), wl2.get_start(),
+                                  whichax=0, color=Vanilla, spacing_ratio=1/3.6)
+        
+
+        compgrids2t = get_gridsSP2(get_hypaxesx(ax.p2c(wl2.get_start())[0]).get_vector(), 
+                                get_hypaxest(ax.p2c(wl2.get_start())[0]).get_vector(), wl2.get_start(), 
+                                whichax=1, color=Vanilla, spacing_ratio=1/3.6)
+
+
+        xax = Arrow(OG+DOWN*2.4, OG+UP*2.4, buff=0).set_color(NewOrange1)
+        tax = Arrow(OG+LEFT*2.4, OG+RIGHT*2.4, buff=0).set_color(NewOrange1)
+
+        xpax = Arrow(wl2.get_start()-wl2tphat*3, wl2.get_start()+wl2tphat*3, buff=0).set_color(Vanilla)
+        tpax = Arrow(wl2.get_start()-wl2xphat*3, wl2.get_start()+wl2xphat*3, buff=0).set_color(Vanilla)
+
+        self.play(Create(xax), Create(tax))
+        self.play(Create(xpax), Create(tpax))
+
+        self.play(FadeIn(*[compgrids1x, compgrids1t]))
+        self.play(FadeIn(*[compgrids2x, compgrids2t]))
+
+        self.wait(3)
+
+
+
+# 35%
+# Lightcones, accelerated worldline, illustrate the impossibility of causal relationships etc.
+class LightconeLimit(MovingCameraScene):
+    def construct(self):
+        ax = Axes(x_range=[-7,7,1], y_range=[-4,4,1], 
+        x_length=14, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.move_to(ORIGIN)
+
+        # rewriting hypax function for practice:
+
+        ax_labels = ax.get_axis_labels(x_label="x", y_label="t").set_color(gndcolor1)
+        xct1 = DashedLine(start=ax.c2p(-9.5,-9.5), end=ax.c2p(9.5,9.5)).set_color(lightcolor).set_opacity(0.5)
+        xct2 = DashedLine(start=ax.c2p(-9.5,9.5), end=ax.c2p(9.5,-9.5)).set_color(lightcolor).set_opacity(0.5)
+        OG=ax.c2p(0,0)
+
+
+        hypmfunc = lambda x: -np.sqrt(x**2 - 3**2)
+        hyppfunc = lambda x: np.sqrt(x**2 - 3**2)
+
+        hypm = ax.plot(lambda x: -np.sqrt(x**2 - 3**2), x_range=[3,9.5,0.01])
+        hypp = ax.plot(lambda x: np.sqrt(x**2 - 3**2), x_range=[3,9.5,0.01])
+
+        hypphalf = ax.plot(lambda x: np.sqrt(x**2 - 3**2), x_range=[3,5,0.01])
+        
+
+        acc = Dot().move_to(hypm.get_end())
+        acc.set_z_index(1)
+
+        xctp = always_redraw(lambda: DashedLine(start=[acc.get_x()+4.5, acc.get_y()-4.5,0], end=[acc.get_x()-4.5, acc.get_y()+4.5,0]).set_color(lightcolor).set_opacity(0.5))
+        xctm = always_redraw(lambda: DashedLine(start=[acc.get_x()-4.5, acc.get_y()-4.5,0], end=[acc.get_x()+4.5, acc.get_y()+4.5,0]).set_color(lightcolor).set_opacity(0.5))
+
+        self.play(Create(ax))
+        self.play(Create(hypm))
+        self.play(Create(hypp))
+        # self.play(Create(xct1), Create(xct2))
+
+        self.play(Create(acc))
+        self.play(Create(xctp), Create(xctm))
+        self.play(MoveAlongPath(acc, hypm, rate_func=lambda t:1-t), run_time=5)
+        self.play(MoveAlongPath(acc, hypp, rate_func=linear), run_time=5)
+        self.wait(2)
+        self.play(FadeOut(*[xctp, xctm]))
+        self.play(MoveAlongPath(acc, hypp, rate_func=lambda t:1-t), run_time=2)
+        self.play(Create(xct1), Create(xct2), run_time=1.5)
+        self.play(AnimationGroup(hypm.animate(run_time=1.5).set_color(SchoolBus), hypp.animate(run_time=1.5).set_color(SchoolBus)))
+
+
+        # self.play(MoveAlongPath(acc, hypphalf))
+        # self.play(Create(get_hypaxes2t(acc, hypmfunc, hyppfunc)))
+
+
+
+        self.wait(5)
+
+
+
+class TwinsTeaser(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGtry
+
+        ax = Axes(
+            x_range=[0, 7, 1],
+            y_range=[0, 7, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN - ax.c2p(0, 0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0, 7], [0, 7], propercolor)
+        lightray = DashedLine(og, ax.c2p(6.8, 6.8)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        self.camera.frame.scale(0.6)
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot), run_time=0.7)
+        self.play(
+            Transform(ogdot, ax.x_axis),
+            self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(
+            Create(ax.y_axis),
+            self.camera.frame.animate.shift(UP*3.8),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(Write(xlabel), Write(tlabel), run_time=0.6)
+        self.play(Create(grid1), Create(lightray), run_time=1.2)
+
+        home_worldline = Line(og, ax.c2p(0, 6.45), stroke_width=6).set_color(gndcolor2)
+        home_label = Tex("home twin").scale(0.58).set_color(gndcolor2)
+        home_label.next_to(home_worldline, LEFT, buff=0.18).shift(UP*0.8)
+        self.play(Create(home_worldline), Write(home_label), run_time=0.9)
+
+        rapidity = 1.20
+        outward_speed = np.tanh(rapidity)
+        first_curve_scale = 0.70
+        turn_curve_scale = 0.82
+
+        first_curve_coords = []
+        for theta in np.linspace(0, rapidity, 42):
+            first_curve_coords.append([
+                first_curve_scale*(np.cosh(theta)-1),
+                first_curve_scale*np.sinh(theta),
+            ])
+
+        first_end_x = first_curve_coords[-1][0]
+        first_end_t = first_curve_coords[-1][1]
+        cruise_end_t = first_end_t + 1.90
+        cruise_end_x = first_end_x + outward_speed*(cruise_end_t-first_end_t)
+
+        cruise_coords = []
+        for time in np.linspace(first_end_t, cruise_end_t, 30):
+            cruise_coords.append([
+                first_end_x + outward_speed*(time-first_end_t),
+                time,
+            ])
+
+        turn_coords = []
+        for theta in np.linspace(rapidity, -rapidity, 84):
+            turn_coords.append([
+                cruise_end_x + turn_curve_scale*(np.cosh(rapidity)-np.cosh(theta)),
+                cruise_end_t + turn_curve_scale*(np.sinh(rapidity)-np.sinh(theta)),
+            ])
+
+        first_curve = VMobject()
+        first_curve.set_points_smoothly([ax.c2p(x, t) for x, t in first_curve_coords])
+        first_curve.set_stroke(phighlight2, width=7)
+
+        cruise_line = Line(
+            ax.c2p(cruise_coords[0][0], cruise_coords[0][1]),
+            ax.c2p(cruise_coords[-1][0], cruise_coords[-1][1]),
+            stroke_width=7,
+        ).set_color(NeonOrange)
+
+        turn_curve = VMobject()
+        turn_curve.set_points_smoothly([ax.c2p(x, t) for x, t in turn_coords])
+        turn_curve.set_stroke(phighlight2, width=7)
+
+        returning_hint = Line(
+            ax.c2p(turn_coords[-1][0], turn_coords[-1][1]),
+            ax.c2p(turn_coords[-1][0]-outward_speed*3, turn_coords[-1][1]+3),
+            stroke_width=5,
+        ).set_color(NeonOrange).set_opacity(0.55)
+
+        traveler_dot = Dot(og, radius=0.1).set_color(LemonOrange).set_z_index(3)
+        # traveler_label = Tex("traveler").scale(0.64).set_color(LemonOrange)
+        # traveler_label.move_to(ax.c2p(cruise_end_x, cruise_end_t)).shift(RIGHT*0.85+DOWN*0.25)
+        # near_light_label = MathTex(r"v \lesssim c").scale(0.72).set_color(lightcolor)
+        # near_light_label.move_to(ax.c2p(first_end_x, first_end_t)).shift(RIGHT*0.72+UP*0.20)
+
+        self.play(Create(traveler_dot), run_time=0.55)
+        self.play(
+            Create(first_curve),
+            MoveAlongPath(traveler_dot, first_curve),
+            run_time=1.35,
+            rate_func=rate_functions.ease_in_sine,
+        )
+        self.play(
+            Create(cruise_line),
+            MoveAlongPath(traveler_dot, cruise_line),
+            run_time=1.25,
+            rate_func=linear,
+        )
+        self.play(
+            Create(turn_curve),
+            MoveAlongPath(traveler_dot, turn_curve),
+            run_time=1.8,
+            rate_func=smooth,
+        )
+        self.play(Create(returning_hint), run_time=0.75)
+
+        turn_midpoint = ax.c2p(
+            cruise_end_x + turn_curve_scale*(np.cosh(rapidity)-1),
+            cruise_end_t + turn_curve_scale*np.sinh(rapidity),
+        )
+        turn_dot = Dot(turn_midpoint, radius=0.075).set_color(Vanilla).set_z_index(4)
+        turnaround_label = Tex("turnaround").scale(0.55).set_color(Vanilla)
+        turnaround_label.next_to(turn_dot, RIGHT, buff=0.16)
+        self.play(Create(turn_dot), Write(turnaround_label), run_time=0.7)
+        self.wait(2)
+
 
 
 # 80%
