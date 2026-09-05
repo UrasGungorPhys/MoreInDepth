@@ -16,6 +16,7 @@ VibrantPink2= ManimColor.from_hex("#BF1363")
 PastelGreen=ManimColor.from_hex("#00AF54")
 VibrantGreen= ManimColor.from_hex("#29BF12")
 LightBlue= ManimColor.from_hex("#74C0F3")
+LighterBlue = ManimColor.from_hex("#B3DDF9")
 RedOrange= ManimColor.from_hex("#BA1200")
 SkyBlue= ManimColor.from_hex("#01FDF6")
 OrangeOrange= ManimColor.from_hex("#FF5714")
@@ -47,6 +48,7 @@ NewOrange1 = ManimColor.from_hex("#F34213")
 NewOrange2 = ManimColor.from_hex("#FE5F00")
 LemonOrange = ManimColor.from_hex("#F18F01")
 Vanilla2 = ManimColor.from_hex("#E8D0B7")
+Purps = ManimColor.from_hex("#9322D8")
 
 gndcolor1 = Vanilla2
 gndcolor2 = SteelBlue
@@ -541,8 +543,6 @@ class CameramenPlateausLite(MovingCameraScene):
             )
 
 
-
-
 # 97.5%
 # Fix the yellowed value tracker not moving
 # Then it works, just some smoothing to do left!
@@ -897,8 +897,6 @@ class Cameramen(MovingCameraScene):
 
 
 
-
-
 # Change the fadeout timings of the camera frames, make the transition to the acceleration smoother that way.
 class CameramenPlateaus(MovingCameraScene):
     def construct(self):
@@ -1085,8 +1083,6 @@ class CameramenPlateaus(MovingCameraScene):
                 [(current_frame, rocket_velocity, 0.95, color, 3+alpha)],
                 after_image_steps(0),
             )
-
-
 
 
 
@@ -3066,9 +3062,9 @@ class Drawingxp(MovingCameraScene):
             half_length = tangent_length/2
             tgline0 = Line(
                 tangent_point-tangent_direction*half_length,
-                tangent_point+tangent_direction*half_length,
-                stroke_width=5,
-                color=LemonOrange,
+                tangent_point+tangent_direction*half_length*1.5,
+                stroke_width=5.5,
+                color=Purps,
             )
             tgdot = Dot(tangent_point, radius=0.055).set_color(Vanilla)
 
@@ -3086,7 +3082,7 @@ class Drawingxp(MovingCameraScene):
             xphat = tangent_direction
             half_length = tangent_length/2
             xp = Line(hyp_point-xphat*half_length, 
-                      hyp_point+xphat*half_length, stroke_width=5,
+                      hyp_point+xphat*half_length*1.5, stroke_width=5.5,
                 color=NewOrange2, buff=0)
 
             return xp
@@ -3168,31 +3164,75 @@ class Drawingxp(MovingCameraScene):
         xplines = VGroup()
         for i in range(len(tgxs)-1):
 
-            xi = tgxs[i+1]
-            if i == 11:
-                self.play(Restore(self.camera.frame))
-            
-            self.play(
-                MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
-                run_time=0.5,
-                rate_func=linear,
+            if i != 0 and i <7:
+                self.play(
+                tglinei.animate.set_stroke(width=3, opacity=0.25),
+                xplinei.animate.set_stroke(width=3, opacity=0.25),
+                FadeOut(xplabeli),
+                FadeOut(tplabeli),
+                run_time=0.25,
             )
+                
+            if i>=7:
+                self.play(
+                tglinei.animate.set_stroke(width=3, opacity=0.25),
+                xplinei.animate.set_stroke(width=3, opacity=0.25),
+                FadeOut(xplabeli),
+                FadeOut(tplabeli),
+                run_time=0.12,
+            )
+            
+
+            xi = tgxs[i+1]
+            
+            
+            if i <7:
+                self.play(
+                    MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                    run_time=0.35,
+                    rate_func=linear,
+                )
+            else:
+                self.play(
+                    MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                    run_time=0.2,
+                    rate_func=linear,
+                )
             
             tglinei = get_tgline(xi)[1]
             xplinei = getxprimeline(xi)
-            self.play(Create(tglinei), run_time=0.18)
-            self.play(Create(xplinei), run_time=0.18)
-            self.wait(0.3)
-            self.play(
-                tglinei.animate.set_stroke(width=3, opacity=0.15),
-                xplinei.animate.set_stroke(width=3, opacity=0.15),
-                run_time=0.12,
-            )
+
+            if i >= 13:
+                xplabeli = MathTex("x'").set_color(NewOrange2).scale(0.6).move_to(xplinei.get_end()).shift(DOWN*0.2+RIGHT*0.2)
+                tplabeli = MathTex("t'").set_color(Purps).scale(0.6).move_to(tglinei.get_end()).shift(UP*0.2+LEFT*0.2)
+
+            else:
+                xplabeli = MathTex("x'").set_color(NewOrange2).scale(0.8).move_to(xplinei.get_end()).shift(xplinei.get_unit_vector()*0.3)
+                tplabeli = MathTex("t'").set_color(Purps).scale(0.8).move_to(tglinei.get_end()).shift(tglinei.get_unit_vector()*0.3)
+
+            if i == 11:
+                self.play(AnimationGroup(Restore(self.camera.frame, run_time=0.6),
+                                         Create(tglinei, run_time=0.2), Create(tplabeli, run_time=0.2),
+                                         Create(xplinei, run_time=0.2), Create(xplabeli, run_time=0.2)))
+                
+            else:
+                self.play(Create(tglinei), Create(tplabeli) , run_time=0.2)
+                self.play(Create(xplinei), Create(xplabeli), run_time=0.2)
+                self.wait(0.15)
+
+            
+            # self.play(
+            #     tglinei.animate.set_stroke(width=3, opacity=0.25),
+            #     xplinei.animate.set_stroke(width=3, opacity=0.25),
+            #     FadeOut(xplabeli),
+            #     FadeOut(tplabeli),
+            #     run_time=0.12,
+            # )
             xplines.add(xplinei)
             tglines.add(tglinei)
 
         self.wait(3)
-        self.play(FadeOut(tglines, acc1, xplines), run_time=1.4)
+        self.play(FadeOut(tglines, acc1, xplines, xplabeli, tplabeli), run_time=1.4)
         self.wait(3)
 
 
@@ -3212,29 +3252,58 @@ class Drawingxp(MovingCameraScene):
             .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
         # tglines = VGroup()
         xplines = VGroup()
-        keeps = [0, 4, 10, 14]
+        keeps = [0, 5, 10, 14]
         rmlines = VGroup()
         for i in range(len(tgxs)-1):
 
             xi = tgxs[i+1]
-            if i == 11:
-                self.play(Restore(self.camera.frame))
             
-            self.play(
+            
+            if i < 7:
+                self.play(
+                    MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                    run_time=0.35,
+                    rate_func=linear,
+                )
+            else:
+                self.play(
                 MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
-                run_time=0.5,
+                run_time=0.2,
                 rate_func=linear,
             )
             
             # tglinei = get_tgline(xi)[1]
+            if i !=0 and i<7:
+                self.play(
+                    xplinei.animate.set_stroke(width=3, opacity=0.35),
+                    FadeOut(xplabeli),
+                    run_time=0.25,
+                )
+            if i>=7:
+                self.play(
+                    xplinei.animate.set_stroke(width=3, opacity=0.35),
+                    FadeOut(xplabeli),
+                    run_time=0.12,
+                )
+
             xplinei = getxprimelineext(xi, i)
-            # self.play(Create(tglinei), run_time=0.18)
+            xplabeli = MathTex("x'").set_color(NewOrange2).scale(0.8).move_to(xplinei.get_end()).shift(xplinei.get_unit_vector()*0.3)
+            if i >= 14:
+                xplabeli = MathTex("x'").set_color(NewOrange2).scale(0.8).move_to(xplinei.get_end()).shift(xplinei.get_unit_vector()*0.3).set_opacity(0)
             
-            self.wait(0.3)
-            self.play(
-                xplinei.animate.set_stroke(width=3, opacity=0.35),
-                run_time=0.12,
-            )
+            if i == 5:
+                self.play(AnimationGroup(Restore(self.camera.frame, run_time=1), Create(xplinei, run_time=0.25), Write(xplabeli, run_time=0.25)))
+            else:
+                self.play(Create(xplinei), Write(xplabeli), run_time=0.25)
+                self.wait(0.15)
+
+            
+            # self.play(
+            #     xplinei.animate.set_stroke(width=3, opacity=0.35),
+            #     FadeOut(xplabeli),
+            #     run_time=0.12,
+            # )
+            
             
             if i not in keeps:
                 rmlines.add(xplinei)
@@ -3243,53 +3312,96 @@ class Drawingxp(MovingCameraScene):
 
             
 
-
         
         self.wait(5)
         self.play(FadeOut(rmlines), FadeOut(acc1))
 
         self.wait(2)
 
-        line0clock = makeclock(1, 0.09).move_to(xplines[0].get_start()+xplines[0].get_unit_vector())
+        line0clock = makeclock(1, 0.11, color=LighterBlue).move_to(xplines[0].get_start()+xplines[0].get_unit_vector())
         line0clock1 = line0clock.copy().move_to(xplines[0].get_center())
         line0clock2 = line0clock.copy().move_to(xplines[0].get_end()-xplines[0].get_unit_vector())
 
-        line1clock = makeclock(3, 0.09).move_to(xplines[1].get_start()+xplines[1].get_unit_vector())
+        line1clock = makeclock(3, 0.11, color=LighterBlue).move_to(xplines[1].get_start()+xplines[1].get_unit_vector())
         line1clock1 = line1clock.copy().move_to(xplines[1].get_center())
         line1clock2 = line1clock.copy().move_to(xplines[1].get_end()-xplines[1].get_unit_vector())
 
-        line2clock = makeclock(5, 0.09).move_to(xplines[2].get_start()+xplines[2].get_unit_vector())
+        line2clock = makeclock(5, 0.11, color=LighterBlue).move_to(xplines[2].get_start()+xplines[2].get_unit_vector())
         line2clock1 = line2clock.copy().move_to(xplines[2].get_center())
         line2clock2 = line2clock.copy().move_to(xplines[2].get_end()-xplines[2].get_unit_vector())
 
-        line3clock = makeclock(7, 0.09).move_to(xplines[3].get_start()+xplines[3].get_unit_vector())
+        line3clock = makeclock(7, 0.11, color=LighterBlue).move_to(xplines[3].get_start()+xplines[3].get_unit_vector())
         line3clock1 = line3clock.copy().move_to(xplines[3].get_center())
         line3clock2 = line3clock.copy().move_to(xplines[3].get_end()-xplines[3].get_unit_vector())
 
         self.play(FadeIn(line0clock))
         self.wait(2)
-        self.play(FadeIn(line0clock1))
-        self.play(FadeIn(line0clock2))
+        self.play(FadeIn(line0clock1), FadeIn(line0clock2))
+        
 
         self.wait(3)
         self.play(FadeIn(line1clock))
 
         self.wait()
-        self.play(FadeIn(line1clock1))
-        self.play(FadeIn(line1clock2))
+        self.play(FadeIn(line1clock1), FadeIn(line1clock2))
+    
 
         self.wait()
         self.play(FadeIn(line2clock))
-        self.play(FadeIn(line2clock1))
-        self.play(FadeIn(line2clock2))
+        self.play(FadeIn(line2clock1), FadeIn(line2clock2))
+        
 
         self.play(FadeIn(line3clock))
-        self.play(FadeIn(line3clock1))
-        self.play(FadeIn(line3clock2))
+        self.play(FadeIn(line3clock1), FadeIn(line3clock2))
+        
+
+
+        self.wait(5)
+        self.play(FadeOut(*[line0clock, line0clock1, line0clock2,
+                             line1clock, line1clock1, line1clock2,
+                             line2clock, line2clock1, line2clock2,
+                             line3clock, line3clock1, line3clock2]))
+        
+
+        self.wait(2)
+        # self.play(ax.x_axis.animate.stretch(1.1, dim=0, about_point=ax.x_axis.get_start()), xlabel.animate.shift(RIGHT))
+
+        worldline1 = Line(ax.c2p(9.3, 0), ax.c2p(9.3, 10.7)).set_color(gndcolor1)
+        dclock0 = makeclock(0, 0.13).move_to(worldline1.get_start())
+
+        rclock0 = makeclock(0, 0.11, color=LighterBlue).move_to(worldline.get_start())
+
+        dclock1 = makeclock(3, 0.13).move_to(gli(xplines[0], worldline1))
+        dclock2 = makeclock(6, 0.13).move_to(gli(xplines[1], worldline1))
+        dclock3 = makeclock(9, 0.13).move_to(gli(xplines[2], worldline1))
+        dclock4 = makeclock(11, 0.13).move_to(gli(xplines[3], worldline1))
+
+        self.play(Create(worldline1))
+
+        self.wait()
+        self.play(FadeIn(dclock0))
+        self.play(FadeIn(rclock0))
+        self.wait(3)
+        self.play(FadeOut(*[dclock0, rclock0]))
+        self.wait(3)
+
+        self.play(FadeIn(line0clock))
+        self.play(FadeIn(dclock1))
+
+        self.play(FadeIn(line1clock))
+        self.play(FadeIn(dclock2))
+
+        self.play(FadeIn(line2clock))
+        self.play(FadeIn(dclock3))
+
+        self.play(FadeIn(line3clock))
+        self.play(FadeIn(dclock4))
 
         
 
+
         self.wait(5)
+
 
 
 
