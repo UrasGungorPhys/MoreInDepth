@@ -1829,6 +1829,378 @@ class TprimeAxes(MovingCameraScene):
 
 
 
+class LikeCalculusJump(MovingCameraScene):
+    # Argue that this is the same idea as we use in basic calculus, where we need an infinite number of 
+    # tangent lines to fully describe a curve with a slope that changes at all points. Put together with the
+    # concept of locality, we can fully describe an accelerated worldline.
+
+    def construct(self):
+        self.camera.background_color = BGtry
+
+        ax = Axes(
+            x_range=[0, 8, 1],
+            y_range=[0, 8, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        self.camera.frame.scale(1.2)
+        ax.shift(ORIGIN-ax.c2p(0, 0))
+        og = ORIGIN
+        grid1 = homemade_grid(ax, [0, 8], [0, 8], propercolor)
+        lightray = DashedLine(og, ax.c2p(7.7, 7.7)).set_color(lightcolor)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+        self.camera.frame.scale(0.6)
+
+        ogdot = Dot(ORIGIN).set_color(gndcolor1)
+        self.play(Create(ogdot))
+        self.wait(0.5)
+        self.play(
+            Transform(ogdot, ax.x_axis),
+            self.camera.frame.animate.scale(1/0.6).shift(RIGHT*4),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(
+            Create(ax.y_axis),
+            self.camera.frame.animate.shift(UP*3.8),
+            rate_func=rate_functions.ease_out_back,
+            run_time=1.1,
+        )
+        self.play(Write(xlabel), Write(tlabel))
+        self.play(Create(grid1), Create(lightray), run_time=1.2)
+
+        plateau_slope = 1.55
+        left_span = 0.7
+        right_span = 1.2
+        plateau_span = 4.25
+        first_plateau_span = plateau_span
+        root = np.sqrt(plateau_slope**2-1)
+        hyp_radius = left_span/(plateau_slope/root-1)
+        join_height = hyp_radius/root
+        join_offset = hyp_radius*plateau_slope/root
+
+        def left_hyperbola(x):
+            return np.sqrt(np.maximum((x+hyp_radius)**2-hyp_radius**2, 0))
+
+        def curve_data(plateau_span):
+            x1 = left_span
+            y1 = join_height
+            x2 = x1+plateau_span
+            y2 = y1+plateau_slope*plateau_span
+            right_center = x2-join_offset
+            right_shift = y2-join_height
+            return x1, y1, x2, y2, right_center, right_shift
+
+        def raw_right_hyperbola(x, plateau_span):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            return np.sqrt(np.maximum((x-right_center)**2-hyp_radius**2, 0))+right_shift
+
+        right_end_slope = 1.0
+
+        def right_curve_shape(x, plateau_span):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            end_x = x2+right_span
+            end_y = raw_right_hyperbola(end_x, plateau_span)
+            t = np.clip((x-x2)/right_span, 0, 1)
+
+            h00 = 2*t**3 - 3*t**2 + 1
+            h10 = t**3 - 2*t**2 + t
+            h01 = -2*t**3 + 3*t**2
+            h11 = t**3 - t**2
+            y = (
+                h00*y2
+                + h10*right_span*plateau_slope
+                + h01*end_y
+                + h11*right_span*right_end_slope
+            )
+
+            dh00 = 6*t**2 - 6*t
+            dh10 = 3*t**2 - 4*t + 1
+            dh01 = -6*t**2 + 6*t
+            dh11 = 3*t**2 - 2*t
+            slope = (
+                dh00*y2
+                + dh10*right_span*plateau_slope
+                + dh01*end_y
+                + dh11*right_span*right_end_slope
+            )/right_span
+            return y, slope
+
+        def right_hyperbola(x, plateau_span):
+            y, slope = right_curve_shape(x, plateau_span)
+            return y
+
+        def right_hyperbola_slope(x, plateau_span):
+            y, slope = right_curve_shape(x, plateau_span)
+            return slope
+
+        def straight_plateau_point(span, alpha):
+            x = alpha*span
+            return ax.c2p(x, plateau_slope*x)
+
+        def plateau_point(plateau_span, alpha):
+            x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+            x = x1+alpha*plateau_span
+            return ax.c2p(x, y1+plateau_slope*(x-x1))
+
+        def make_curve(points, color=gndcolor2, stroke_width=7):
+            curve = VMobject()
+            curve.set_points_smoothly(points)
+            curve.set_stroke(color, width=stroke_width)
+            return curve
+
+        def unit_scene_vector(dx, dt):
+            vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
+            return vector/np.linalg.norm(vector)
+
+        def local_dirs_from_slope(slope):
+            safe_slope = np.clip(slope, 1e-3, 1000)
+            return unit_scene_vector(1, 1/safe_slope), unit_scene_vector(1, safe_slope)
+
+        def plateau_dirs():
+            return local_dirs_from_slope(plateau_slope)
+
+        local_axis_length = 3
+
+        def local_frame(
+            point_func,
+            xhat_func,
+            that_func,
+            tracker,
+            span,
+            end_alpha=0.68,
+            axes_opacity_tracker=None,
+            grid_opacity_tracker=None,
+        ):
+            def axes_opacity():
+                if axes_opacity_tracker is None:
+                    return 1
+                return axes_opacity_tracker.get_value()
+
+            def grid_opacity():
+                if grid_opacity_tracker is None:
+                    return 0.35
+                return grid_opacity_tracker.get_value()
+
+            local_origin = always_redraw(
+                lambda: Dot(point_func(tracker.get_value()), radius=0.075)
+                .set_color(NeonOrange)
+                .set_z_index(5)
+            )
+            tp = always_redraw(
+                lambda: Arrow(
+                    point_func(tracker.get_value()),
+                    point_func(tracker.get_value())+that_func(tracker.get_value())*local_axis_length,
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.12,
+                ).set_color(pcolor1).set_opacity(axes_opacity())
+            )
+            xp = always_redraw(
+                lambda: Arrow(
+                    point_func(tracker.get_value()),
+                    point_func(tracker.get_value())+xhat_func(tracker.get_value())*local_axis_length,
+                    buff=0,
+                    stroke_width=5,
+                    max_tip_length_to_length_ratio=0.12,
+                ).set_color(pcolor1).set_opacity(axes_opacity())
+            )
+            moving_grid = always_redraw(
+                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=grid_opacity(), spacing=0.45, length_ratio=0.82)
+            )
+            tplabel = always_redraw(
+                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).set_opacity(axes_opacity()).next_to(tp.get_end(), UL, buff=0.1)
+            )
+            xplabel = always_redraw(
+                lambda: MathTex("x'").set_color(SkyBlue).scale(0.55).set_opacity(axes_opacity()).next_to(xp.get_end(), UR, buff=0.05)
+            )
+            return local_origin, tp, xp, moving_grid, tplabel, xplabel
+
+        x1, y1, x2, y2, right_center, right_shift = curve_data(plateau_span)
+        initial_plateau = Line(
+            straight_plateau_point(first_plateau_span, 0),
+            straight_plateau_point(first_plateau_span, 1),
+            stroke_width=7,
+            color=pcolor1,
+        )
+        first_alpha = ValueTracker(0)
+        xprime_hat, tprime_hat = plateau_dirs()
+        inertial_frame = local_frame(
+            lambda alpha: straight_plateau_point(first_plateau_span, alpha),
+            lambda alpha: xprime_hat,
+            lambda alpha: tprime_hat,
+            first_alpha,
+            first_plateau_span,
+        )
+        first_dot, first_tp, first_xp, first_grid, first_tlabel, first_xlabel = inertial_frame
+
+        self.play(Create(initial_plateau), run_time=1.2, rate_func=rate_functions.ease_out_cubic)
+        self.play(
+            Create(first_tp),
+            Create(first_xp),
+            FadeIn(first_grid),
+            Create(first_dot),
+            Write(first_tlabel),
+            Write(first_xlabel),
+            run_time=1,
+        )
+        self.play(first_alpha.animate.set_value(0.68), run_time=3.2, rate_func=linear)
+        self.play(first_alpha.animate.set_value(0), run_time=2.4, rate_func=linear)
+        self.wait(0.35)
+        self.play(
+            FadeOut(first_tp),
+            FadeOut(first_xp),
+            FadeOut(first_grid),
+            FadeOut(first_dot),
+            FadeOut(first_tlabel),
+            FadeOut(first_xlabel),
+            run_time=0.65,
+        )
+
+        self.play(
+            FadeOut(ogdot),
+            FadeOut(ax.y_axis),
+            FadeOut(xlabel),
+            FadeOut(tlabel),
+            FadeOut(grid1),
+            FadeOut(lightray),
+            run_time=0.8,
+        )
+
+        reveal_ax = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 10, 1],
+            x_length=10,
+            y_length=10,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        reveal_ax.shift(initial_plateau.get_start()-reveal_ax.c2p(x1, y1))
+        ax = reveal_ax
+        og = ax.c2p(0, 0)
+        grid2 = homemade_grid(ax, [0, 10], [0, 10], propercolor)
+        lightray2 = DashedLine(og, ax.c2p(9.7, 9.7)).set_color(lightcolor)
+        xlabel2 = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel2 = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        self.play(
+            Create(ax),
+            Write(xlabel2),
+            Write(tlabel2),
+            Create(grid2),
+            Create(lightray2),
+            self.camera.frame.animate.scale(1.38).move_to(initial_plateau.get_center()+DOWN*0.35+LEFT*0.1),
+            run_time=1.4,
+            rate_func=smooth,
+        )
+
+        left_points = [ax.c2p(x, left_hyperbola(x)) for x in np.linspace(0, x1, 55)]
+        right_points = [
+            ax.c2p(x, right_hyperbola(x, plateau_span))
+            for x in np.linspace(x2, x2+right_span, 55)
+        ]
+        left_curve = make_curve(left_points)
+        right_curve = make_curve(right_points)
+
+        self.play(Create(left_curve), Create(right_curve), run_time=1.3, rate_func=rate_functions.ease_out_cubic)
+        self.wait(0.4)
+
+        full_x = ValueTracker(0)
+        left_end_axis_angle = np.arctan(1/plateau_slope)
+
+        def left_motion_x(progress):
+            alpha = np.clip(progress/x1, 0, 1)
+            if alpha <= 0:
+                return 0
+            if alpha >= 1:
+                return x1
+
+            axis_angle = alpha*left_end_axis_angle
+            slope = 1/np.tan(axis_angle)
+            return hyp_radius*(slope/np.sqrt(slope**2-1)-1)
+
+        def full_point(x):
+            if x <= x1:
+                motion_x = left_motion_x(x)
+                return ax.c2p(motion_x, left_hyperbola(motion_x))
+            if x <= x2:
+                return ax.c2p(x, y1+plateau_slope*(x-x1))
+            return ax.c2p(x, right_hyperbola(x, plateau_span))
+
+        def left_hyperbola_slope(x):
+            y = left_hyperbola(x)
+            if y <= 1e-6:
+                return 1000
+            return (x+hyp_radius)/y
+
+        def full_slope(x):
+            if x <= x1:
+                return left_hyperbola_slope(left_motion_x(x))
+            if x <= x2:
+                return plateau_slope
+            return right_hyperbola_slope(x, plateau_span)
+
+        def full_xhat(x):
+            xhat, that = local_dirs_from_slope(full_slope(x))
+            return xhat
+
+        def full_that(x):
+            xhat, that = local_dirs_from_slope(full_slope(x))
+            return that
+
+        full_axes_opacity = ValueTracker(1)
+        full_grid_opacity = ValueTracker(0.35)
+        full_dot, full_tp, full_xp, full_grid, full_tlabel, full_xlabel = local_frame(
+            full_point,
+            full_xhat,
+            full_that,
+            full_x,
+            x2+right_span,
+            axes_opacity_tracker=full_axes_opacity,
+            grid_opacity_tracker=full_grid_opacity,
+        )
+
+        self.play(
+            Create(full_tp),
+            Create(full_xp),
+            FadeIn(full_grid),
+            Create(full_dot),
+            Write(full_tlabel),
+            Write(full_xlabel),
+            run_time=1,
+        )
+        self.wait(2)
+        self.play(
+            full_axes_opacity.animate.set_value(0.05),
+            full_grid_opacity.animate.set_value(0.05),
+            run_time=0.6,
+        )
+        
+        self.wait()
+        
+
+        self.play(full_x.animate.set_value(x1), run_time=5.2, rate_func=rate_functions.ease_in_out_sine)
+
+        self.play(
+            full_axes_opacity.animate.set_value(1),
+            full_grid_opacity.animate.set_value(0.35),
+            run_time=0.6,
+        )
+        
+        self.wait()
+        self.play(full_x.animate.set_value(x2), run_time=3.3, rate_func=linear)
+        self.play(
+            full_axes_opacity.animate.set_value(0.05),
+            full_grid_opacity.animate.set_value(0.05),
+            run_time=0.6,
+        )
+        self.play(full_x.animate.set_value(x2+right_span), run_time=3.4, rate_func=linear)
+
+        self.wait(2)
+
+
+
 class LikeCalculus(MovingCameraScene):
     # Argue that this is the same idea as we use in basic calculus, where we need an infinite number of 
     # tangent lines to fully describe a curve with a slope that changes at all points. Put together with the
@@ -1992,7 +2364,7 @@ class LikeCalculus(MovingCameraScene):
                 lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.45, length_ratio=0.82)
             )
             tplabel = always_redraw(
-                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UR, buff=0.05)
+                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UL, buff=0.1)
             )
             xplabel = always_redraw(
                 lambda: MathTex("x'").set_color(SkyBlue).scale(0.55).next_to(xp.get_end(), UR, buff=0.05)
@@ -2147,7 +2519,36 @@ class LikeCalculus(MovingCameraScene):
             Write(full_xlabel),
             run_time=1,
         )
+        self.wait(2)
+        ftp_updaters = full_tp.updaters.copy()
+        fxp_updaters = full_xp.updaters.copy()
+        fgrid_updaters = full_grid.updaters.copy()
+        ftl_updaters = full_tlabel.updaters.copy()
+        fxl_updaters = full_xlabel.updaters.copy()
+        full_tp.clear_updaters()
+        full_xp.clear_updaters()
+        full_grid.clear_updaters()
+        full_tlabel.clear_updaters()
+        full_xlabel.clear_updaters()
+
+        self.play(full_tp.animate.set_opacity(0.05), full_xp.animate.set_opacity(0.05), full_grid.animate.set_opacity(0.05),
+                full_tlabel.animate.set_opacity(0.05), full_xlabel.animate.set_opacity(0.05))
+        
+        self.wait()
+        
+
         self.play(full_x.animate.set_value(x1), run_time=5.2, rate_func=rate_functions.ease_in_out_sine)
+
+        self.play(full_tp.animate.set_opacity(1), full_xp.animate.set_opacity(1), full_grid.animate.set_opacity(1),
+                    full_tlabel.animate.set_opacity(1), full_xlabel.animate.set_opacity(1))
+
+        full_tp.add_updater(ftp_updaters[0])
+        full_xp.add_updater(fxp_updaters[0])
+        full_grid.add_updater(fgrid_updaters[0])
+        full_tlabel.add_updater(ftl_updaters[0])
+        full_xlabel.add_updater(fxl_updaters[0])
+        
+        self.wait()
         self.play(full_x.animate.set_value(x2), run_time=3.3, rate_func=linear)
         self.play(full_x.animate.set_value(x2+right_span), run_time=3.4, rate_func=linear)
 
@@ -2227,7 +2628,7 @@ class LikeCalculusFollowup(MovingCameraScene):
                 color=pcolor1,
             )
             segments.append(plateau)
-            plateau_data.append((plateau_start, plateau_slope))
+            plateau_data.append((plateau_start, plateau_end, plateau_slope))
             x, t = plateau_end
 
         for segment in segments:
@@ -2235,30 +2636,58 @@ class LikeCalculusFollowup(MovingCameraScene):
 
         self.wait(0.75)
 
-        def small_lorentz_axes(point, slope):
-            origin = ax.c2p(*point)
-            axis_length = 0.58
+        def plateau_point(plateau_info, alpha):
+            start, end, slope = plateau_info
+            x = start[0]+(end[0]-start[0])*alpha
+            t = start[1]+(end[1]-start[1])*alpha
+            return ax.c2p(x, t)
+
+        def plateau_lorentz_axes(plateau_info, progress_tracker, opacity_tracker):
+            start, end, slope = plateau_info
+            origin = plateau_point(plateau_info, progress_tracker.get_value())
+            axis_length = 3
             tp_dir = unit_scene_vector(1, slope)
             xp_dir = unit_scene_vector(1, 1/slope)
+            opacity = opacity_tracker.get_value()
             tp = Arrow(
                 origin,
                 origin+tp_dir*axis_length,
                 buff=0,
-                stroke_width=4,
-                max_tip_length_to_length_ratio=0.18,
-            ).set_color(pcolor1).set_z_index(5)
+                stroke_width=5,
+                max_tip_length_to_length_ratio=0.12,
+            ).set_color(pcolor1).set_opacity(opacity).set_z_index(5)
             xp = Arrow(
                 origin,
                 origin+xp_dir*axis_length,
                 buff=0,
-                stroke_width=4,
-                max_tip_length_to_length_ratio=0.18,
-            ).set_color(pcolor1).set_z_index(5)
-            return VGroup(tp, xp)
+                stroke_width=5,
+                max_tip_length_to_length_ratio=0.12,
+            ).set_color(pcolor1).set_opacity(opacity).set_z_index(5)
+            tplabel = MathTex("t'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(tp.get_end(), UL, buff=0.1)
+            xplabel = MathTex("x'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(xp.get_end(), UR, buff=0.05)
+            return VGroup(tp, xp, tplabel, xplabel)
 
+        axis_progress_trackers = [
+            ValueTracker(0)
+            for plateau_info in plateau_data
+        ]
+        axis_opacity_trackers = [
+            ValueTracker(1 if i == 0 else 0.1)
+            for i, plateau_info in enumerate(plateau_data)
+        ]
         local_axes = [
-            small_lorentz_axes(point, slope)
-            for point, slope in plateau_data
+            always_redraw(
+                lambda plateau_info=plateau_info, progress_tracker=progress_tracker, opacity_tracker=opacity_tracker: plateau_lorentz_axes(
+                    plateau_info,
+                    progress_tracker,
+                    opacity_tracker,
+                )
+            )
+            for plateau_info, progress_tracker, opacity_tracker in zip(
+                plateau_data,
+                axis_progress_trackers,
+                axis_opacity_trackers,
+            )
         ]
         self.play(
             LaggedStart(
@@ -2268,6 +2697,39 @@ class LikeCalculusFollowup(MovingCameraScene):
             run_time=2.2,
             rate_func=smooth,
         )
+
+        def fade_in_tail(alpha, tail_start=0.62):
+            if alpha <= tail_start:
+                return 0
+            return smooth((alpha-tail_start)/(1-tail_start))
+
+        def move_plateau_axes(index, run_time=2.6):
+            animations = [
+                UpdateFromAlphaFunc(
+                    axis_progress_trackers[index],
+                    lambda tracker, alpha: tracker.set_value(alpha),
+                ),
+                UpdateFromAlphaFunc(
+                    axis_opacity_trackers[index],
+                    lambda tracker, alpha: tracker.set_value(1-fade_in_tail(alpha)),
+                ),
+            ]
+            if index+1 < len(axis_opacity_trackers):
+                animations.append(
+                    UpdateFromAlphaFunc(
+                        axis_opacity_trackers[index+1],
+                        lambda tracker, alpha: tracker.set_value(0.1+0.9*fade_in_tail(alpha)),
+                    )
+                )
+            self.play(
+                *animations,
+                run_time=run_time,
+                rate_func=linear,
+            )
+
+        self.wait(0.5)
+        for i in range(len(local_axes)):
+            move_plateau_axes(i)
 
         self.wait(2)
 
