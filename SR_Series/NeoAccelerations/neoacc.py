@@ -2519,34 +2519,15 @@ class LikeCalculus(MovingCameraScene):
             Write(full_xlabel),
             run_time=1,
         )
-        self.wait(2)
-        ftp_updaters = full_tp.updaters.copy()
-        fxp_updaters = full_xp.updaters.copy()
-        fgrid_updaters = full_grid.updaters.copy()
-        ftl_updaters = full_tlabel.updaters.copy()
-        fxl_updaters = full_xlabel.updaters.copy()
-        full_tp.clear_updaters()
-        full_xp.clear_updaters()
-        full_grid.clear_updaters()
-        full_tlabel.clear_updaters()
-        full_xlabel.clear_updaters()
-
-        self.play(full_tp.animate.set_opacity(0.05), full_xp.animate.set_opacity(0.05), full_grid.animate.set_opacity(0.05),
-                full_tlabel.animate.set_opacity(0.05), full_xlabel.animate.set_opacity(0.05))
         
+
+       
         self.wait()
         
 
         self.play(full_x.animate.set_value(x1), run_time=5.2, rate_func=rate_functions.ease_in_out_sine)
 
-        self.play(full_tp.animate.set_opacity(1), full_xp.animate.set_opacity(1), full_grid.animate.set_opacity(1),
-                    full_tlabel.animate.set_opacity(1), full_xlabel.animate.set_opacity(1))
-
-        full_tp.add_updater(ftp_updaters[0])
-        full_xp.add_updater(fxp_updaters[0])
-        full_grid.add_updater(fgrid_updaters[0])
-        full_tlabel.add_updater(ftl_updaters[0])
-        full_xlabel.add_updater(fxl_updaters[0])
+    
         
         self.wait()
         self.play(full_x.animate.set_value(x2), run_time=3.3, rate_func=linear)
@@ -2642,7 +2623,7 @@ class LikeCalculusFollowup(MovingCameraScene):
             t = start[1]+(end[1]-start[1])*alpha
             return ax.c2p(x, t)
 
-        def plateau_lorentz_axes(plateau_info, progress_tracker, opacity_tracker):
+        def plateau_lorentz_axes(plateau_info, progress_tracker, opacity_tracker, axes_color):
             start, end, slope = plateau_info
             origin = plateau_point(plateau_info, progress_tracker.get_value())
             axis_length = 3
@@ -2655,14 +2636,14 @@ class LikeCalculusFollowup(MovingCameraScene):
                 buff=0,
                 stroke_width=5,
                 max_tip_length_to_length_ratio=0.12,
-            ).set_color(pcolor1).set_opacity(opacity).set_z_index(5)
+            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
             xp = Arrow(
                 origin,
                 origin+xp_dir*axis_length,
                 buff=0,
                 stroke_width=5,
                 max_tip_length_to_length_ratio=0.12,
-            ).set_color(pcolor1).set_opacity(opacity).set_z_index(5)
+            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
             tplabel = MathTex("t'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(tp.get_end(), UL, buff=0.1)
             xplabel = MathTex("x'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(xp.get_end(), UR, buff=0.05)
             return VGroup(tp, xp, tplabel, xplabel)
@@ -2677,16 +2658,18 @@ class LikeCalculusFollowup(MovingCameraScene):
         ]
         local_axes = [
             always_redraw(
-                lambda plateau_info=plateau_info, progress_tracker=progress_tracker, opacity_tracker=opacity_tracker: plateau_lorentz_axes(
+                lambda plateau_info=plateau_info, progress_tracker=progress_tracker, opacity_tracker=opacity_tracker, axes_color=axes_color: plateau_lorentz_axes(
                     plateau_info,
                     progress_tracker,
                     opacity_tracker,
+                    axes_color,
                 )
             )
-            for plateau_info, progress_tracker, opacity_tracker in zip(
+            for plateau_info, progress_tracker, opacity_tracker, axes_color in zip(
                 plateau_data,
                 axis_progress_trackers,
                 axis_opacity_trackers,
+                ["#74C0F3", "#66ADD9", "#589BC4", "#4A88AF", "#3C769A"],
             )
         ]
         self.play(
@@ -2698,38 +2681,45 @@ class LikeCalculusFollowup(MovingCameraScene):
             rate_func=smooth,
         )
 
-        def fade_in_tail(alpha, tail_start=0.62):
+        def fade_in_head(alpha, head_end=0.28):
+            if alpha >= head_end:
+                return 1
+            return smooth(alpha/head_end)
+
+        def fade_out_tail(alpha, tail_start=0.68):
             if alpha <= tail_start:
                 return 0
             return smooth((alpha-tail_start)/(1-tail_start))
 
-        def move_plateau_axes(index, run_time=2.6):
-            animations = [
+        def plateau_axes_animation(index, run_time=2.6):
+            def active_opacity(alpha):
+                fade_in = 1 if index == 0 else fade_in_head(alpha)
+                return (0.1+0.9*fade_in)*(1-fade_out_tail(alpha))
+
+            return AnimationGroup(
                 UpdateFromAlphaFunc(
                     axis_progress_trackers[index],
                     lambda tracker, alpha: tracker.set_value(alpha),
+                    run_time=run_time,
+                    rate_func=linear,
                 ),
                 UpdateFromAlphaFunc(
                     axis_opacity_trackers[index],
-                    lambda tracker, alpha: tracker.set_value(1-fade_in_tail(alpha)),
+                    lambda tracker, alpha: tracker.set_value(active_opacity(alpha)),
+                    run_time=run_time,
+                    rate_func=linear,
                 ),
-            ]
-            if index+1 < len(axis_opacity_trackers):
-                animations.append(
-                    UpdateFromAlphaFunc(
-                        axis_opacity_trackers[index+1],
-                        lambda tracker, alpha: tracker.set_value(0.1+0.9*fade_in_tail(alpha)),
-                    )
-                )
-            self.play(
-                *animations,
-                run_time=run_time,
-                rate_func=linear,
+                lag_ratio=0,
             )
 
-        self.wait(0.5)
-        for i in range(len(local_axes)):
-            move_plateau_axes(i)
+        self.play(
+            Succession(
+                *[
+                    plateau_axes_animation(i)
+                    for i in range(len(local_axes))
+                ]
+            )
+        )
 
         self.wait(2)
 
@@ -2811,19 +2801,27 @@ class LikeCalculus2(MovingCameraScene):
             left_xs = np.linspace(0, x1, 45)
             plateau_xs = np.linspace(x1, x2, 90)
             right_xs = np.linspace(x2, x2+right_span, 45)
-            points = []
+            left_curve = VMobject()
+            left_curve.set_points_smoothly([
+                ax.c2p(x, left_hyperbola(x))
+                for x in left_xs
+            ])
+            left_curve.set_stroke(gndcolor2, width=7)
 
-            for x in left_xs:
-                points.append(ax.c2p(x, left_hyperbola(x)))
-            for x in plateau_xs:
-                points.append(ax.c2p(x, y1+plateau_slope*(x-x1)))
-            for x in right_xs:
-                points.append(ax.c2p(x, right_hyperbola(x, plateau_span)))
+            plateau = VMobject()
+            plateau.set_points_smoothly([
+                ax.c2p(x, y1+plateau_slope*(x-x1))
+                for x in plateau_xs
+            ])
+            plateau.set_stroke(pcolor1, width=7)
 
-            curve = VMobject()
-            curve.set_points_smoothly(points)
-            curve.set_stroke(gndcolor2, width=7)
-            return curve
+            right_curve = VMobject()
+            right_curve.set_points_smoothly([
+                ax.c2p(x, right_hyperbola(x, plateau_span))
+                for x in right_xs
+            ])
+            right_curve.set_stroke(gndcolor2, width=7)
+            return VGroup(left_curve, plateau, right_curve)
 
         def unit_scene_vector(dx, dt):
             vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
@@ -2831,7 +2829,7 @@ class LikeCalculus2(MovingCameraScene):
 
         tprime_hat = unit_scene_vector(1, plateau_slope)
         xprime_hat = unit_scene_vector(1, 1/plateau_slope)
-        local_axis_length = 1.75
+        local_axis_length = 3
 
         def focus_on_plateau(plateau_span, zoom=0.72):
             midpoint = plateau_point(plateau_span, 0.5)
@@ -2864,10 +2862,10 @@ class LikeCalculus2(MovingCameraScene):
                 ).set_color(pcolor1)
             )
             moving_grid = always_redraw(
-                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.35, length_ratio=0.82)
+                lambda: lorentz_grid(xp, tp, pcolor1, opacitychoice=0.35, spacing=0.45, length_ratio=0.82)
             )
             tplabel = always_redraw(
-                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UR, buff=0.05)
+                lambda: MathTex("t'").set_color(SkyBlue).scale(0.55).next_to(tp.get_end(), UL, buff=0.1)
             )
             xplabel = always_redraw(
                 lambda: MathTex("x'").set_color(SkyBlue).scale(0.55).next_to(xp.get_end(), UR, buff=0.05)
