@@ -2863,18 +2863,36 @@ class CameramenLorentzAxes2(MovingCameraScene):
 
         # Sample the same fixed hyperbola interval for every N.
         # N controls the number of straight legs, not the endpoints.
-        N = 10
+        N = 11
         eta_max = np.arccosh(hypxf / hypx0)
-        eta_vertices = np.linspace(0, eta_max, N + 1)
+        # Measure arc length along a dense sample of the smooth hyperbola.
+        # Equal arc intervals give nearly equal visible straight-leg lengths
+        # and put more vertices around the opening bend.
+        eta_samples = np.linspace(0, eta_max, 4001)
+        curve_samples = np.array([
+            ax.c2p(hypx0 * np.cosh(eta), hypx0 * np.sinh(eta))
+            for eta in eta_samples
+        ])
+        arc_lengths = np.concatenate((
+            [0], np.cumsum(np.linalg.norm(np.diff(curve_samples, axis=0), axis=1)),
+        ))
+        eta_vertices = np.interp(
+            np.linspace(0, arc_lengths[-1], N + 1), arc_lengths, eta_samples,
+        )
         rough_points = [
             ax.c2p(hypx0 * np.cosh(eta), hypx0 * np.sinh(eta))
             for eta in eta_vertices
+        ]
+        # Number segments from 1: odd legs are a slightly darker orange.
+        dark_orange = interpolate_color(NewOrange2, BLACK, 0.3)
+        segment_colors = [
+            dark_orange if step % 2 == 0 else NewOrange2 for step in range(N)
         ]
         rough_worldline = VGroup()
         for step in range(N):
             rough_worldline.add(Line(
                 rough_points[step], rough_points[step + 1],
-                color=NewOrange2, stroke_width=4,
+                color=segment_colors[step], stroke_width=4,
             ))
 
         # A chord's velocity is tanh of its endpoints' mean rapidity.
@@ -2885,13 +2903,19 @@ class CameramenLorentzAxes2(MovingCameraScene):
             Dot(point, radius=0.025, color=NewOrange2) for point in rough_points
         ])
         self.play(Create(rough_worldline), FadeIn(rough_joints), run_time=2)
-        wldot = Dot(rough_points[0], color=LemonOrange).set_z_index(3)
+        wldot = Dot(rough_points[0], color=Vanilla).set_z_index(3)
         self.play(FadeIn(wldot))
         self.wait(0.5)
 
         # Each t' axis is parallel to the next straight leg; x' is its
         # reflection across the light ray. Both close toward the light cone.
         for step, eta in enumerate(rapidities):
+            # Restore the leg just completed, then highlight the current leg
+            # throughout its local-frame display and the dot's movement.
+            if step > 0:
+                rough_worldline[step - 1].set_color(segment_colors[step - 1])
+            rough_worldline[step].set_color(Vanilla)
+
             beta = np.tanh(eta)
             tpdir = np.array([beta, 1, 0]) / np.sqrt(1 + beta**2)
             xpdir = np.array([1, beta, 0]) / np.sqrt(1 + beta**2)
@@ -2989,7 +3013,7 @@ class CameramenLorentzAxes2(MovingCameraScene):
         ).scale(0.65).next_to(wldot.get_center(), LEFT, buff=0.3))
 
         self.play(FadeIn(wldot))
-        self.play(self.camera.frame.animate.scale(1.4).shift(UP * 1.6 + RIGHT * 1.5),
+        self.play(
             FadeIn(tpaxis), FadeIn(xpaxis), FadeIn(tplabel), FadeIn(xplabel),
             FadeIn(moving_grid), FadeIn(smooth_boost_label),
         )
