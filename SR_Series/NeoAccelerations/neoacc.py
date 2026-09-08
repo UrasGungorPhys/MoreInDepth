@@ -2201,6 +2201,326 @@ class LikeCalculusJump(MovingCameraScene):
 
 
 
+class LikeCalculusBridge(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGtry
+        ax = Axes(
+            x_range=[0, 10, 1], y_range=[0, 10, 1],
+            x_length=10, y_length=10,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        ax.shift(ORIGIN - ax.c2p(0, 0))
+        self.camera.frame.scale(1.9).move_to(ax.c2p(4.5, 6.2))
+
+        background_grid = homemade_grid(ax, [0, 10], [0, 10], propercolor)
+        lightray = DashedLine(ax.c2p(0, 0), ax.c2p(9.7, 9.7)).set_color(lightcolor)
+        xlabel = MathTex("x").set_color(gndcolor1)
+        xlabel.move_to(ax.x_axis.get_end()).shift(UP * 0.5)
+        tlabel = MathTex("t").set_color(gndcolor1)
+        tlabel.move_to(ax.y_axis.get_end()).shift(RIGHT * 0.35 + UP * 0.1)
+        self.play(
+            Create(ax), Create(background_grid), Create(lightray),
+            Write(xlabel), Write(tlabel), run_time=1.2,
+        )
+
+        # Angles are measured from the horizontal x axis in the x,t diagram.
+        first_angle = 65 * DEGREES
+        second_angle = 53 * DEGREES
+        beta1 = 1 / np.tan(first_angle)
+        beta2 = 1 / np.tan(second_angle)
+        eta1 = np.arctanh(beta1)
+        eta2 = np.arctanh(beta2)
+        # Increase the previous 68-degree / 58-degree line lengths by 25%.
+        first_line_length = 1.25 * 3 / np.sin(68 * DEGREES)
+        second_line_length = 1.25 * 3 / np.sin(58 * DEGREES)
+        first_time_span = first_line_length * np.sin(first_angle)
+        second_time_span = second_line_length * np.sin(second_angle)
+        accel_radius = 4
+
+        # The translated hyperbola has dx/dt = tanh(eta), so its tangents
+        # agree exactly with the straight sections at both joins.
+        x1 = beta1 * first_time_span
+        t1 = first_time_span
+        x2 = x1 + accel_radius * (np.cosh(eta2) - np.cosh(eta1))
+        t2 = t1 + accel_radius * (np.sinh(eta2) - np.sinh(eta1))
+        x3 = x2 + beta2 * second_time_span
+        t3 = t2 + second_time_span
+
+        first_line = Line(ax.c2p(0, 0), ax.c2p(x1, t1), color=pcolor1, stroke_width=7)
+        middle_arc = ParametricFunction(
+            lambda eta: ax.c2p(
+                x1 + accel_radius * (np.cosh(eta) - np.cosh(eta1)),
+                t1 + accel_radius * (np.sinh(eta) - np.sinh(eta1)),
+            ),
+            t_range=[eta1, eta2, 0.002], color=gndcolor2, stroke_width=7,
+        )
+        second_line = Line(ax.c2p(x2, t2), ax.c2p(x3, t3), color=pcolor1, stroke_width=7)
+        self.play(Create(first_line), run_time=1)
+        self.play(Create(middle_arc), run_time=0.8)
+        self.play(Create(second_line), run_time=1)
+
+        # One position function and one velocity function keep all moving
+        # objects on the same continuous worldline, including at the joins.
+        def worldline_point(t):
+            if t <= t1:
+                return ax.c2p(beta1 * t, t)
+            if t <= t2:
+                sinh_eta = np.sinh(eta1) + (t - t1) / accel_radius
+                x = x1 + accel_radius * (np.sqrt(1 + sinh_eta**2) - np.cosh(eta1))
+                return ax.c2p(x, t)
+            return ax.c2p(x2 + beta2 * (t - t2), t)
+
+        def worldline_beta(t):
+            if t <= t1:
+                return beta1
+            if t >= t2:
+                return beta2
+            sinh_eta = np.sinh(eta1) + (t - t1) / accel_radius
+            return sinh_eta / np.sqrt(1 + sinh_eta**2)
+
+        time_tracker = ValueTracker(0)
+        axes_opacity = ValueTracker(1)
+        grid_opacity = ValueTracker(0.35)
+        local_axis_length = 3
+        moving_dot = always_redraw(lambda: Dot(
+            worldline_point(time_tracker.get_value()), radius=0.075, color=NeonOrange,
+        ).set_z_index(5))
+        tp = always_redraw(lambda: Arrow(
+            moving_dot.get_center(),
+            moving_dot.get_center() + local_axis_length * np.array([
+                worldline_beta(time_tracker.get_value()), 1, 0,
+            ]) / np.sqrt(1 + worldline_beta(time_tracker.get_value())**2),
+            buff=0, stroke_width=5, max_tip_length_to_length_ratio=0.12,
+            color=pcolor1,
+        ).set_opacity(axes_opacity.get_value()))
+        xp = always_redraw(lambda: Arrow(
+            moving_dot.get_center(),
+            moving_dot.get_center() + local_axis_length * np.array([
+                1, worldline_beta(time_tracker.get_value()), 0,
+            ]) / np.sqrt(1 + worldline_beta(time_tracker.get_value())**2),
+            buff=0, stroke_width=5, max_tip_length_to_length_ratio=0.12,
+            color=pcolor1,
+        ).set_opacity(axes_opacity.get_value()))
+        moving_grid = always_redraw(lambda: lorentz_grid(
+            xp, tp, pcolor1, opacitychoice=grid_opacity.get_value(),
+            spacing=0.45, length_ratio=0.82,
+        ))
+        tplabel = always_redraw(lambda: MathTex("t'", color=SkyBlue)
+            .scale(0.55).set_opacity(axes_opacity.get_value())
+            .next_to(tp.get_end(), UL, buff=0.1))
+        xplabel = always_redraw(lambda: MathTex("x'", color=SkyBlue)
+            .scale(0.55).set_opacity(axes_opacity.get_value())
+            .next_to(xp.get_end(), UR, buff=0.05))
+
+        self.play(
+            FadeIn(moving_dot), FadeIn(tp), FadeIn(xp),
+            FadeIn(moving_grid), FadeIn(tplabel), FadeIn(xplabel), run_time=1,
+        )
+        self.wait(1)
+        self.play(time_tracker.animate.set_value(t1), run_time=3.5, rate_func=linear)
+
+        # Dim the local frame at the first join, as in LikeCalculus.
+        self.play(
+            axes_opacity.animate.set_value(0.05),
+            grid_opacity.animate.set_value(0.05), run_time=0.6,
+        )
+        self.play(time_tracker.animate.set_value(t2), run_time=3, rate_func=linear)
+        self.play(
+            axes_opacity.animate.set_value(1),
+            grid_opacity.animate.set_value(0.35), run_time=0.6,
+        )
+        self.play(time_tracker.animate.set_value(t3), run_time=3.5, rate_func=linear)
+        self.wait(2)
+
+
+class LikeCalculusFollowup(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGtry
+
+        ax = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 10, 1],
+            x_length=8,
+            y_length=8,
+            axis_config={"include_ticks": False, "stroke_width": 5},
+        ).set_color(gndcolor1)
+        ax.shift(ORIGIN-ax.c2p(0, 0))
+        self.camera.frame.scale(1.18).move_to(ax.c2p(5.0, 5.0))
+
+        og = ax.c2p(0, 0)
+        grid = homemade_grid(ax, [0, 10], [0, 10], propercolor, opacitychoice=0.18)
+        lightray = DashedLine(og, ax.c2p(9.7, 9.7), stroke_width=3).set_color(lightcolor).set_opacity(0.75)
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.45).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        self.play(
+            Create(ax),
+            Create(grid),
+            Create(lightray),
+            Write(xlabel),
+            Write(tlabel),
+            run_time=1.2,
+            rate_func=smooth,
+        )
+
+        def make_curve(points, color, stroke_width=6):
+            curve = VMobject()
+            curve.set_points_smoothly(points)
+            curve.set_stroke(color, width=stroke_width)
+            return curve
+
+        def unit_scene_vector(dx, dt):
+            vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
+            return vector/np.linalg.norm(vector)
+
+        rapidities = [0, 0.42, 0.64, 0.85, 1.04, 1.22]
+        plateau_lengths = [0.8, 0.9, 1.0, 1.1, 1.2]
+        accel_radius = 0.72
+        x, t = 0, 0
+        segments = []
+        plateau_data = []
+
+        for i, plateau_length in enumerate(plateau_lengths):
+            eta0 = rapidities[i]
+            eta1 = rapidities[i+1]
+            arc_points = [
+                ax.c2p(
+                    x+accel_radius*(np.cosh(eta)-np.cosh(eta0)),
+                    t+accel_radius*(np.sinh(eta)-np.sinh(eta0)),
+                )
+                for eta in np.linspace(eta0, eta1, 36)
+            ]
+            arc = make_curve(arc_points, SteelBlue)
+            segments.append(arc)
+
+            x = x+accel_radius*(np.cosh(eta1)-np.cosh(eta0))
+            t = t+accel_radius*(np.sinh(eta1)-np.sinh(eta0))
+            plateau_slope = np.cosh(eta1)/np.sinh(eta1)
+            plateau_start = (x, t)
+            plateau_end = (x+plateau_length, t+plateau_slope*plateau_length)
+            plateau = Line(
+                ax.c2p(*plateau_start),
+                ax.c2p(*plateau_end),
+                stroke_width=6,
+                color=pcolor1,
+            )
+            segments.append(plateau)
+            plateau_data.append((plateau_start, plateau_end, plateau_slope))
+            x, t = plateau_end
+
+        for segment in segments:
+            self.play(Create(segment), run_time=0.72, rate_func=rate_functions.ease_in_out_sine)
+
+        self.wait(0.75)
+
+        def plateau_point(plateau_info, alpha):
+            start, end, slope = plateau_info
+            x = start[0]+(end[0]-start[0])*alpha
+            t = start[1]+(end[1]-start[1])*alpha
+            return ax.c2p(x, t)
+
+        def plateau_lorentz_axes(plateau_info, progress_tracker, opacity_tracker, axes_color):
+            start, end, slope = plateau_info
+            origin = plateau_point(plateau_info, progress_tracker.get_value())
+            axis_length = 3
+            tp_dir = unit_scene_vector(1, slope)
+            xp_dir = unit_scene_vector(1, 1/slope)
+            opacity = opacity_tracker.get_value()
+            tp = Arrow(
+                origin,
+                origin+tp_dir*axis_length,
+                buff=0,
+                stroke_width=5,
+                max_tip_length_to_length_ratio=0.12,
+            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
+            xp = Arrow(
+                origin,
+                origin+xp_dir*axis_length,
+                buff=0,
+                stroke_width=5,
+                max_tip_length_to_length_ratio=0.12,
+            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
+            tplabel = MathTex("t'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(tp.get_end(), UL, buff=0.1)
+            xplabel = MathTex("x'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(xp.get_end(), UR, buff=0.05)
+            return VGroup(tp, xp, tplabel, xplabel)
+
+        axis_progress_trackers = [
+            ValueTracker(0)
+            for plateau_info in plateau_data
+        ]
+        axis_opacity_trackers = [
+            ValueTracker(1 if i == 0 else 0.1)
+            for i, plateau_info in enumerate(plateau_data)
+        ]
+        local_axes = [
+            always_redraw(
+                lambda plateau_info=plateau_info, progress_tracker=progress_tracker, opacity_tracker=opacity_tracker, axes_color=axes_color: plateau_lorentz_axes(
+                    plateau_info,
+                    progress_tracker,
+                    opacity_tracker,
+                    axes_color,
+                )
+            )
+            for plateau_info, progress_tracker, opacity_tracker, axes_color in zip(
+                plateau_data,
+                axis_progress_trackers,
+                axis_opacity_trackers,
+                ["#74C0F3", "#66ADD9", "#589BC4", "#4A88AF", "#3C769A"],
+            )
+        ]
+        self.play(
+            LaggedStart(
+                *[Create(axes) for axes in local_axes],
+                lag_ratio=0.22,
+            ),
+            run_time=2.2,
+            rate_func=smooth,
+        )
+
+        def fade_in_head(alpha, head_end=0.28):
+            if alpha >= head_end:
+                return 1
+            return smooth(alpha/head_end)
+
+        def fade_out_tail(alpha, tail_start=0.68):
+            if alpha <= tail_start:
+                return 0
+            return smooth((alpha-tail_start)/(1-tail_start))
+
+        def plateau_axes_animation(index, run_time=2.6):
+            def active_opacity(alpha):
+                fade_in = 1 if index == 0 else fade_in_head(alpha)
+                return (0.1+0.9*fade_in)*(1-fade_out_tail(alpha))
+
+            return AnimationGroup(
+                UpdateFromAlphaFunc(
+                    axis_progress_trackers[index],
+                    lambda tracker, alpha: tracker.set_value(alpha),
+                    run_time=run_time,
+                    rate_func=linear,
+                ),
+                UpdateFromAlphaFunc(
+                    axis_opacity_trackers[index],
+                    lambda tracker, alpha: tracker.set_value(active_opacity(alpha)),
+                    run_time=run_time,
+                    rate_func=linear,
+                ),
+                lag_ratio=0,
+            )
+
+        self.play(
+            Succession(
+                *[
+                    plateau_axes_animation(i)
+                    for i in range(len(local_axes))
+                ]
+            )
+        )
+
+        self.wait(2)
+
+
+
 class LikeCalculusFollowup(MovingCameraScene):
     def construct(self):
         self.camera.background_color = BGtry
@@ -2936,16 +3256,17 @@ class CameramenLorentzAxes2(MovingCameraScene):
             xplabel.next_to(xpaxis.get_end(), DR, buff=0.08)
             # Label the rapidity at this shared hyperbola vertex. The
             # straight leg's frame uses its chord direction as an approximation.
-            boost_label = MathTex(
-                rf"\Lambda({eta_vertices[step]:.1f})", color=LightBlue,
-            ).scale(0.65)
-            boost_label.next_to(origin, LEFT, buff=0.3)
+            # boost_label = MathTex(
+            #     rf"\Lambda({eta_vertices[step]:.1f})", color=LightBlue,
+            # ).scale(0.65)
+            # boost_label.next_to(origin, LEFT, buff=0.3)
             local_grid = lorentz_grid(
                 xpaxis, tpaxis, pcolor1,
                 opacitychoice=0.35, spacing=0.45, length_ratio=0.82,
             ).set_z_index(-1)
             local_frame = VGroup(
-                local_grid, tpaxis, xpaxis, tplabel, xplabel, boost_label,
+                local_grid, tpaxis, xpaxis, tplabel, xplabel, 
+                # boost_label,
             )
 
             self.play(FadeIn(local_frame), run_time=0.4)
@@ -3015,7 +3336,8 @@ class CameramenLorentzAxes2(MovingCameraScene):
         self.play(FadeIn(wldot))
         self.play(
             FadeIn(tpaxis), FadeIn(xpaxis), FadeIn(tplabel), FadeIn(xplabel),
-            FadeIn(moving_grid), FadeIn(smooth_boost_label),
+            FadeIn(moving_grid), 
+            FadeIn(smooth_boost_label),
         )
         self.wait(1)
         self.play(eta_tracker.animate.set_value(eta_max), run_time=12, rate_func=linear)
