@@ -601,12 +601,15 @@ class Cameramen(MovingCameraScene):
                 camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam))
                                          
                 if t >= enter + framedelta - 2:
-                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(LemonOrange))
+                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(Greenough))
                                              
                     # vl = always_redraw(lambda: MathTex("v_f = v").set_color(LemonOrange).move_to(vlabelpos.get_center()))
-                if t >= enter+ framedelta + 4:
-                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(Vanilla))
-                                             
+                if t >= enter+ framedelta:
+                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(Vanilla).set_stroke(opacity=0))
+
+                if t >= enter+ framedelta+1:
+                    camanim = AnimationGroup(cam.animate(run_time=frame_time, rate_func=linear).shift(RIGHT*vcam).set_color(Vanilla).set_stroke(opacity=1))
+                                            
 
                 camframeanim = self.camera.frame.animate(run_time=frame_time,rate_func=linear).shift(RIGHT*vcam)
                 camanim = AnimationGroup(camanim, camframeanim, vtracker.animate(run_time=frame_time, rate_func=linear).set_value(vcam/v))
@@ -650,6 +653,7 @@ class Cameramen(MovingCameraScene):
         enter_cams = 257
         resultcam = 280
         # first get x's in a preliminary loop:
+        shootcolor = Greenough
         deltaxs = []
         velocities = []
         for t in range(N):
@@ -676,7 +680,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot(cam1.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                     lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam1+ framedelta + 4 >=t >= enter_cam1 + framedelta - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam1+ framedelta + 4 >= t >= enter_cam1 + framedelta - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam1+ framedelta + 4 >= t >= enter_cam1 + framedelta - 2 else propercolor)
                     .move_to(vlabelpos.get_center()))
 
                     self.add(vlabelpos)
@@ -704,7 +708,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam2.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam2+ framedelta + 4 >=t >= enter_cam2 + framedelta - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam2+ framedelta + 4 >= t >= enter_cam2 + framedelta - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam2+ framedelta + 4 >= t >= enter_cam2 + framedelta - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )
                     self.add(vlabelpos)
@@ -733,7 +737,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam3.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam3+ framedelta3 + 4 >=t >= enter_cam3 + framedelta3 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam3+ framedelta3 + 4 >= t >= enter_cam3 + framedelta3 - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam3+ framedelta3 + 4 >= t >= enter_cam3 + framedelta3 - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )
                     self.add(vlabelpos)
@@ -761,7 +765,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam4.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam4+ framedelta4 + 4 >= t >= enter_cam4 + framedelta4 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam4+ framedelta4 + 4 >= t >= enter_cam4 + framedelta4 - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam4+ framedelta4 + 4 >= t >= enter_cam4 + framedelta4 - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )   
                     
@@ -790,7 +794,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam5.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam5+ framedelta5 + 4 >=t >= enter_cam5 + framedelta5 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam5+ framedelta5 + 4 >= t >= enter_cam5 + framedelta5 - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam5+ framedelta5 + 4 >= t >= enter_cam5 + framedelta5 - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )
                     
@@ -818,7 +822,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam6.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam6+ framedelta6 + 4 >=t >= enter_cam6 + framedelta6 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam6+ framedelta6 + 4 >= t >= enter_cam6 + framedelta6 - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam6+ framedelta6 + 4 >= t >= enter_cam6 + framedelta6 - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )   
                     
@@ -846,7 +850,7 @@ class Cameramen(MovingCameraScene):
                     vlabelpos = always_redraw(lambda: Dot().move_to(cam7.get_corner(DR)).shift(LEFT*1.5+UP).set_opacity(0))
                     vl = always_redraw(
                 lambda: MathTex(f"v_f = {vtracker.get_value():.2f} v" if not (enter_cam7+ framedelta7 + 4 >=t >= enter_cam7 + framedelta7 - 2) else "v_f = v")
-                    .set_color(LemonOrange if enter_cam7+ framedelta7 + 4 >= t >= enter_cam7 + framedelta7 - 2 else propercolor)
+                    .set_color(shootcolor if enter_cam7+ framedelta7 + 4 >= t >= enter_cam7 + framedelta7 - 2 else propercolor)
                     .move_to(vlabelpos.get_center())
             )   
                 self.add(vlabelpos)
@@ -897,8 +901,7 @@ class Cameramen(MovingCameraScene):
 
 
 
-# Change the fadeout timings of the camera frames, make the transition to the acceleration smoother that way.
-class CameramenPlateaus(MovingCameraScene):
+class CameramenPlateaus2(MovingCameraScene):
     def construct(self):
         self.camera.background_color = BGBlue1
 
@@ -911,25 +914,6 @@ class CameramenPlateaus(MovingCameraScene):
             opacity = rng.uniform(0.25, 0.8)
             stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
             stars.add(stari)
-
-        # def make_rocket():
-        #     rocket_path = os.path.join(os.path.dirname(__file__), "rocket.png")
-        #     if os.path.exists(rocket_path):
-        #         return ImageMobject(rocket_path).scale(0.2)
-
-        #     body = RoundedRectangle(width=0.95, height=0.34, corner_radius=0.16)
-        #     body.set_fill(SteelBlue, opacity=1).set_stroke(Vanilla, width=1.4, opacity=0.8)
-        #     nose = Triangle(fill_opacity=1, color=Vanilla).scale(0.18).rotate(-PI/2)
-        #     nose.next_to(body, RIGHT, buff=-0.01)
-        #     flame = Polygon(
-        #         body.get_left(),
-        #         body.get_left()+LEFT*0.45+UP*0.13,
-        #         body.get_left()+LEFT*0.45+DOWN*0.13,
-        #         color=LemonOrange,
-        #         fill_opacity=0.85,
-        #         stroke_opacity=0,
-        #     )
-        #     return VGroup(flame, body, nose)
 
         rocket = ImageMobject("rocket.png").scale(0.2)
         self.camera.frame.set(width=10.5).move_to(rocket.get_center())
@@ -965,9 +949,11 @@ class CameramenPlateaus(MovingCameraScene):
                 return None
             steps = []
             base_opacities = [0.28, 0.18, 0.10, 0.05]
+            history_spacing = 7
             for i, after_image in enumerate(after_images):
-                history_index = max(0, len(rocket_history)-2-i)
-                steps.append((after_image, rocket_history[history_index], base_opacities[i]*opacity_scale))
+                history_index = max(0, len(rocket_history)-1-history_spacing*(i+1))
+                opacity = base_opacities[i]*opacity_scale if len(rocket_history) > history_spacing*(i+1) else 0
+                steps.append((after_image, rocket_history[history_index], opacity))
             return steps
 
         def make_camera_frame(center):
@@ -980,9 +966,9 @@ class CameramenPlateaus(MovingCameraScene):
         frame_time = 1/15
         rocket_velocity = 0.045
         coast_frames = [18, 21, 24, 27, 30, 33, 36]
-        acceleration_frames = [18, 16, 14, 12, 11, 10, 9]
-        catch_frames = [10, 10, 9, 8, 7, 7, 7]
-        accelerations = [0.0040, 0.0032, 0.0027, 0.0022, 0.0018, 0.0015, 0.0012]
+        acceleration_frames = [30, 30, 30, 30, 30, 30, 30]
+        accelerations = [0.0024, 0.0017067, 0.00126, 0.00088, 0.00066, 0.0005, 0.00036]
+        approach_frames = 12
         final_glide_frames = int(6/frame_time)
 
         current_frame = make_camera_frame(rocket.get_center())
@@ -993,7 +979,11 @@ class CameramenPlateaus(MovingCameraScene):
             t = np.clip(t, 0, 1)
             return t*t*(3-2*t)
 
-        def play_kinematic_step(rocket_dx, scene_camera_dx, frame_steps, after_steps=None):
+        frame_recordings = {}
+        scene_tick = 0
+
+        def play_kinematic_step(rocket_dx, scene_camera_dx, frame_steps, after_steps=None, extra_steps=None):
+            nonlocal scene_tick
             animations = [
                 rocket.animate.shift(RIGHT*rocket_dx),
                 self.camera.frame.animate.shift(RIGHT*scene_camera_dx),
@@ -1003,13 +993,49 @@ class CameramenPlateaus(MovingCameraScene):
                 frame_anim = frame_anim.set_stroke(color=color, opacity=opacity, width=width)
                 frame_anim = frame_anim.set_fill(opacity=0)
                 animations.append(frame_anim)
+                recording = frame_recordings.get(id(frame))
+                if recording is not None:
+                    dot, label = recording
+                    blink = 1 if (scene_tick//7) % 2 == 0 else 0.2
+                    opacity_scale = np.clip(opacity/0.95, 0, 1)
+                    animations.extend([
+                        dot.animate.shift(RIGHT*frame_dx).set_opacity(blink*opacity_scale),
+                        label.animate.shift(RIGHT*frame_dx).set_opacity(opacity_scale),
+                    ])
             if after_steps is not None:
                 for after_image, center, opacity in after_steps:
                     animations.append(after_image.animate.move_to(center).set_opacity(opacity))
+            if extra_steps is not None:
+                animations.extend(extra_steps)
             self.play(*animations, run_time=frame_time, rate_func=linear)
             rocket_history.append(rocket.get_center().copy())
-            if len(rocket_history) > len(after_images)+4:
+            if len(rocket_history) > len(after_images)*7+1:
                 rocket_history.pop(0)
+            scene_tick += 1
+
+        def add_recording_indicator(frame):
+            rec_dot = Dot(radius=0.07, color=FunRed)
+            rec_label = Text("REC", font_size=24, color=FunRed, weight=BOLD)
+            rec_group = VGroup(rec_dot, rec_label).arrange(RIGHT, buff=0.10)
+            rec_group.move_to(frame.get_corner(UL)+RIGHT*0.75+DOWN*0.42)
+            rec_group.set_opacity(0)
+            self.add(rec_group)
+            self.play(
+                frame.animate.set_stroke(color=FunRed, opacity=0.95, width=3),
+                rec_group.animate.set_opacity(1),
+                run_time=0.2,
+            )
+            frame_recordings[id(frame)] = (rec_dot, rec_label)
+
+        def record_current_frame(frame):
+            for _ in range(round(0.5/frame_time)):
+                play_kinematic_step(
+                    rocket_velocity,
+                    rocket_velocity,
+                    [(frame, rocket_velocity, 0.95, Greenough, 3)],
+                    after_image_steps(0),
+                )
+            add_recording_indicator(frame)
 
         for cycle, acceleration in enumerate(accelerations):
             for q in range(coast_frames[cycle]):
@@ -1023,64 +1049,224 @@ class CameramenPlateaus(MovingCameraScene):
                     after_image_steps(0),
                 )
 
-            old_velocity = rocket_velocity
-            show_after_images()
+            if cycle == 0:
+                record_current_frame(current_frame)
 
-            for q in range(acceleration_frames[cycle]):
-                alpha = (q+1)/acceleration_frames[cycle]
-                rocket_velocity += acceleration
-                rocket_dx = rocket_velocity
-
-                if alpha < 0.34:
-                    scene_camera_dx = old_velocity
-                else:
-                    offset = rocket.get_x()-self.camera.frame.get_x()
-                    remaining_steps = acceleration_frames[cycle]-q
-                    scene_camera_dx = rocket_velocity+offset/remaining_steps
-
-                old_frame_opacity = 0.92*(1-frame_alpha(alpha))
-                play_kinematic_step(
-                    rocket_dx,
-                    scene_camera_dx,
-                    [(current_frame, old_velocity, old_frame_opacity, Vanilla, 3)],
-                    after_image_steps(frame_alpha(alpha)),
-                )
-
-            self.remove(current_frame)
-
-            new_frame = make_camera_frame(rocket.get_center()+LEFT*1.25)
+            # Let the incoming frame visibly approach before the rocket starts
+            # accelerating, then meet it exactly on the final acceleration step.
+            acceleration_steps = acceleration_frames[cycle]
+            start_velocity = rocket_velocity
+            target_velocity = start_velocity + acceleration*acceleration_steps
+            rocket_distance = sum(
+                start_velocity + acceleration*(step+1)
+                for step in range(acceleration_steps)
+            )
+            frame_start_offset = (
+                rocket_distance - target_velocity*acceleration_steps
+                + (start_velocity-target_velocity)*approach_frames
+            )
+            new_frame = make_camera_frame(rocket.get_center()+RIGHT*frame_start_offset)
             new_frame.set_stroke(opacity=0)
             self.add(new_frame)
 
-            for q in range(catch_frames[cycle]):
-                alpha = frame_alpha((q+1)/catch_frames[cycle])
-                remaining_steps = catch_frames[cycle]-q
-                rocket_dx = rocket_velocity
-                camera_offset = rocket.get_x()-self.camera.frame.get_x()
-                scene_camera_dx = rocket_velocity+camera_offset/remaining_steps
-                frame_offset = rocket.get_x()-new_frame.get_x()
-                new_frame_dx = rocket_velocity+frame_offset/remaining_steps
-                color = interpolate_color(Vanilla, LemonOrange, alpha)
-
+            for q in range(approach_frames):
+                alpha = frame_alpha((q+1)/4)
+                old_opacity = 0.15 + (0.92-0.15)*(1-frame_alpha(min(1, (q+1)/6)))
                 play_kinematic_step(
-                    rocket_dx,
-                    scene_camera_dx,
-                    [(new_frame, new_frame_dx, 0.92*alpha, color, 3+alpha)],
-                    after_image_steps(1-alpha),
+                    start_velocity,
+                    start_velocity,
+                    [
+                        (current_frame, 0, old_opacity, FunRed, 3),
+                        (new_frame, target_velocity, 0.3*alpha, Vanilla, 3),
+                    ],
+                    after_image_steps(0),
+                )
+
+            # Begin the trail only when acceleration begins. This prevents
+            # coast/approach positions from looking like a second rocket.
+            rocket_history = [rocket.get_center().copy()]
+            show_after_images()
+            for q in range(acceleration_steps):
+                rocket_velocity += acceleration
+                play_kinematic_step(
+                    rocket_velocity,
+                    rocket_velocity,
+                    [
+                        (current_frame, 0, 0.15, FunRed, 3),
+                        (new_frame, target_velocity, 0.3, Vanilla, 3),
+                    ],
+                    after_image_steps(frame_alpha(1-alpha)),
+                )
+
+            for q in range(6):
+                settle_alpha = frame_alpha((q+1)/6)
+                play_kinematic_step(
+                    rocket_velocity,
+                    rocket_velocity,
+                    [(new_frame, rocket_velocity, 0.3+0.62*settle_alpha, Vanilla, 3)],
+                    after_image_steps(0),
                 )
 
             hide_after_images()
+            # Promote the caught frame to the full-opacity tracking frame.
             new_frame.move_to(rocket.get_center())
             new_frame.set_stroke(color=Vanilla, opacity=0.92, width=3)
             current_frame = new_frame
+            record_current_frame(current_frame)
 
         for q in range(final_glide_frames):
-            alpha = frame_alpha(min(1, (q+1)/8))
-            color = interpolate_color(Vanilla, LemonOrange, alpha)
             play_kinematic_step(
                 rocket_velocity,
                 rocket_velocity,
-                [(current_frame, rocket_velocity, 0.95, color, 3+alpha)],
+                [(current_frame, rocket_velocity, 0.95, Vanilla, 3)],
+                after_image_steps(0),
+            )
+
+
+
+class CameramenPlateusLite(MovingCameraScene):
+    def construct(self):
+        self.camera.background_color = BGBlue1
+
+        rng = np.random.default_rng(18)
+        stars = VGroup()
+        for i in range(1200):
+            xs = rng.uniform(-20, 46)
+            ys = rng.uniform(-8, 8)
+            radius = rng.uniform(0.006, 0.018)
+            opacity = rng.uniform(0.25, 0.8)
+            stari = Dot(point=[xs, ys, 0], radius=radius, color=WHITE).set_opacity(opacity)
+            stars.add(stari)
+
+        def make_rocket():
+            rocket_path = os.path.join(os.path.dirname(__file__), "rocket.png")
+            if os.path.exists(rocket_path):
+                return ImageMobject(rocket_path).scale(0.2)
+
+            body = RoundedRectangle(width=0.95, height=0.34, corner_radius=0.16)
+            body.set_fill(SteelBlue, opacity=1).set_stroke(Vanilla, width=1.4, opacity=0.8)
+            nose = Triangle(fill_opacity=1, color=Vanilla).scale(0.18).rotate(-PI/2)
+            nose.next_to(body, RIGHT, buff=-0.01)
+            flame = Polygon(
+                body.get_left(),
+                body.get_left()+LEFT*0.45+UP*0.13,
+                body.get_left()+LEFT*0.45+DOWN*0.13,
+                color=LemonOrange,
+                fill_opacity=0.85,
+                stroke_opacity=0,
+            )
+            return VGroup(flame, body, nose)
+
+        def make_camera_frame(center):
+            frame = Rectangle(height=4.8, width=7.2)
+            frame.move_to(center)
+            frame.set_fill(opacity=0)
+            frame.set_stroke(color=Vanilla, opacity=0.95, width=3)
+            return frame
+
+        rocket = make_rocket().move_to(LEFT*4.5+DOWN*0.25)
+        self.camera.frame.set(width=10.5).move_to(rocket.get_center())
+
+        self.add(stars)
+        self.play(FadeIn(rocket), run_time=0.7)
+        self.wait(0.2)
+
+        after_images = Group(*[
+            rocket.copy().set_opacity(0)
+            for i in range(4)
+        ])
+        after_images_active = False
+        rocket_history = [rocket.get_center().copy() for i in range(len(after_images)+1)]
+
+        def show_after_images():
+            nonlocal after_images_active
+            if not after_images_active:
+                self.add(after_images)
+                self.add(rocket)
+                after_images_active = True
+
+        def hide_after_images():
+            nonlocal after_images_active
+            if after_images_active:
+                for after_image in after_images:
+                    after_image.set_opacity(0)
+                self.remove(after_images)
+                after_images_active = False
+
+        def frame_alpha(t):
+            t = np.clip(t, 0, 1)
+            return t*t*(3-2*t)
+
+        def after_image_steps(opacity_scale):
+            if opacity_scale <= 1e-3 and not after_images_active:
+                return None
+            base_opacities = [0.28, 0.18, 0.10, 0.05]
+            steps = []
+            for i, after_image in enumerate(after_images):
+                history_index = max(0, len(rocket_history)-2-i)
+                steps.append((after_image, rocket_history[history_index], base_opacities[i]*opacity_scale))
+            return steps
+
+        frame_time = 1/15
+        acceleration_frames = int(5/frame_time)
+        catch_frames = int(2/frame_time)
+        coast_frames = int(10/frame_time)
+        rocket_velocity = 0.035
+        scene_camera_velocity = rocket_velocity
+        acceleration = 0.00125
+
+        def play_kinematic_step(rocket_dx, scene_camera_dx, frame_steps=None, after_steps=None):
+            animations = [
+                rocket.animate.shift(RIGHT*rocket_dx),
+                self.camera.frame.animate.shift(RIGHT*scene_camera_dx),
+            ]
+            if frame_steps is not None:
+                for frame, frame_dx, opacity, color, width in frame_steps:
+                    frame_anim = frame.animate.shift(RIGHT*frame_dx)
+                    frame_anim = frame_anim.set_stroke(color=color, opacity=opacity, width=width)
+                    frame_anim = frame_anim.set_fill(opacity=0)
+                    animations.append(frame_anim)
+            if after_steps is not None:
+                for after_image, center, opacity in after_steps:
+                    animations.append(after_image.animate.move_to(center).set_opacity(opacity))
+            self.play(*animations, run_time=frame_time, rate_func=linear)
+            rocket_history.append(rocket.get_center().copy())
+            if len(rocket_history) > len(after_images)+4:
+                rocket_history.pop(0)
+
+        show_after_images()
+        for q in range(acceleration_frames):
+            alpha = (q+1)/acceleration_frames
+            rocket_velocity += acceleration
+            play_kinematic_step(
+                rocket_velocity,
+                scene_camera_velocity,
+                after_steps=after_image_steps(frame_alpha(alpha)),
+            )
+
+        catch_offset = rocket.get_x()-self.camera.frame.get_x()
+        for q in range(catch_frames):
+            prev_alpha = frame_alpha(q/catch_frames)
+            alpha = frame_alpha((q+1)/catch_frames)
+            scene_camera_dx = rocket_velocity+catch_offset*(alpha-prev_alpha)
+            play_kinematic_step(
+                rocket_velocity,
+                scene_camera_dx,
+                after_steps=after_image_steps(1-alpha),
+            )
+
+        hide_after_images()
+
+        camera_frame = make_camera_frame(rocket.get_center())
+        camera_frame.set_stroke(opacity=0)
+        self.add(camera_frame)
+
+        for q in range(coast_frames):
+            frame_opacity = 0.95*frame_alpha((q+1)/14)
+            play_kinematic_step(
+                rocket_velocity,
+                rocket_velocity,
+                [(camera_frame, rocket_velocity, frame_opacity, Vanilla, 3)],
                 after_image_steps(0),
             )
 
@@ -2206,11 +2392,11 @@ class LikeCalculusBridge(MovingCameraScene):
         self.camera.background_color = BGtry
         ax = Axes(
             x_range=[0, 10, 1], y_range=[0, 10, 1],
-            x_length=10, y_length=10,
+            x_length=8, y_length=8,
             axis_config={"include_ticks": False, "stroke_width": 5},
         ).set_color(gndcolor1)
-        ax.shift(ORIGIN - ax.c2p(0, 0))
-        self.camera.frame.scale(1.9).move_to(ax.c2p(4.5, 6.2))
+        ax.shift(ORIGIN-ax.c2p(0, 0))
+        self.camera.frame.scale(1.2).shift(UP*3.8).shift(RIGHT*4)
 
         background_grid = homemade_grid(ax, [0, 10], [0, 10], propercolor)
         lightray = DashedLine(ax.c2p(0, 0), ax.c2p(9.7, 9.7)).set_color(lightcolor)
@@ -2330,193 +2516,6 @@ class LikeCalculusBridge(MovingCameraScene):
             grid_opacity.animate.set_value(0.35), run_time=0.6,
         )
         self.play(time_tracker.animate.set_value(t3), run_time=3.5, rate_func=linear)
-        self.wait(2)
-
-
-class LikeCalculusFollowup(MovingCameraScene):
-    def construct(self):
-        self.camera.background_color = BGtry
-
-        ax = Axes(
-            x_range=[0, 10, 1],
-            y_range=[0, 10, 1],
-            x_length=8,
-            y_length=8,
-            axis_config={"include_ticks": False, "stroke_width": 5},
-        ).set_color(gndcolor1)
-        ax.shift(ORIGIN-ax.c2p(0, 0))
-        self.camera.frame.scale(1.18).move_to(ax.c2p(5.0, 5.0))
-
-        og = ax.c2p(0, 0)
-        grid = homemade_grid(ax, [0, 10], [0, 10], propercolor, opacitychoice=0.18)
-        lightray = DashedLine(og, ax.c2p(9.7, 9.7), stroke_width=3).set_color(lightcolor).set_opacity(0.75)
-        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.45).set_color(gndcolor1)
-        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
-
-        self.play(
-            Create(ax),
-            Create(grid),
-            Create(lightray),
-            Write(xlabel),
-            Write(tlabel),
-            run_time=1.2,
-            rate_func=smooth,
-        )
-
-        def make_curve(points, color, stroke_width=6):
-            curve = VMobject()
-            curve.set_points_smoothly(points)
-            curve.set_stroke(color, width=stroke_width)
-            return curve
-
-        def unit_scene_vector(dx, dt):
-            vector = ax.c2p(dx, dt)-ax.c2p(0, 0)
-            return vector/np.linalg.norm(vector)
-
-        rapidities = [0, 0.42, 0.64, 0.85, 1.04, 1.22]
-        plateau_lengths = [0.8, 0.9, 1.0, 1.1, 1.2]
-        accel_radius = 0.72
-        x, t = 0, 0
-        segments = []
-        plateau_data = []
-
-        for i, plateau_length in enumerate(plateau_lengths):
-            eta0 = rapidities[i]
-            eta1 = rapidities[i+1]
-            arc_points = [
-                ax.c2p(
-                    x+accel_radius*(np.cosh(eta)-np.cosh(eta0)),
-                    t+accel_radius*(np.sinh(eta)-np.sinh(eta0)),
-                )
-                for eta in np.linspace(eta0, eta1, 36)
-            ]
-            arc = make_curve(arc_points, SteelBlue)
-            segments.append(arc)
-
-            x = x+accel_radius*(np.cosh(eta1)-np.cosh(eta0))
-            t = t+accel_radius*(np.sinh(eta1)-np.sinh(eta0))
-            plateau_slope = np.cosh(eta1)/np.sinh(eta1)
-            plateau_start = (x, t)
-            plateau_end = (x+plateau_length, t+plateau_slope*plateau_length)
-            plateau = Line(
-                ax.c2p(*plateau_start),
-                ax.c2p(*plateau_end),
-                stroke_width=6,
-                color=pcolor1,
-            )
-            segments.append(plateau)
-            plateau_data.append((plateau_start, plateau_end, plateau_slope))
-            x, t = plateau_end
-
-        for segment in segments:
-            self.play(Create(segment), run_time=0.72, rate_func=rate_functions.ease_in_out_sine)
-
-        self.wait(0.75)
-
-        def plateau_point(plateau_info, alpha):
-            start, end, slope = plateau_info
-            x = start[0]+(end[0]-start[0])*alpha
-            t = start[1]+(end[1]-start[1])*alpha
-            return ax.c2p(x, t)
-
-        def plateau_lorentz_axes(plateau_info, progress_tracker, opacity_tracker, axes_color):
-            start, end, slope = plateau_info
-            origin = plateau_point(plateau_info, progress_tracker.get_value())
-            axis_length = 3
-            tp_dir = unit_scene_vector(1, slope)
-            xp_dir = unit_scene_vector(1, 1/slope)
-            opacity = opacity_tracker.get_value()
-            tp = Arrow(
-                origin,
-                origin+tp_dir*axis_length,
-                buff=0,
-                stroke_width=5,
-                max_tip_length_to_length_ratio=0.12,
-            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
-            xp = Arrow(
-                origin,
-                origin+xp_dir*axis_length,
-                buff=0,
-                stroke_width=5,
-                max_tip_length_to_length_ratio=0.12,
-            ).set_color(axes_color).set_opacity(opacity).set_z_index(5)
-            tplabel = MathTex("t'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(tp.get_end(), UL, buff=0.1)
-            xplabel = MathTex("x'").set_color(SkyBlue).scale(0.55).set_opacity(opacity).next_to(xp.get_end(), UR, buff=0.05)
-            return VGroup(tp, xp, tplabel, xplabel)
-
-        axis_progress_trackers = [
-            ValueTracker(0)
-            for plateau_info in plateau_data
-        ]
-        axis_opacity_trackers = [
-            ValueTracker(1 if i == 0 else 0.1)
-            for i, plateau_info in enumerate(plateau_data)
-        ]
-        local_axes = [
-            always_redraw(
-                lambda plateau_info=plateau_info, progress_tracker=progress_tracker, opacity_tracker=opacity_tracker, axes_color=axes_color: plateau_lorentz_axes(
-                    plateau_info,
-                    progress_tracker,
-                    opacity_tracker,
-                    axes_color,
-                )
-            )
-            for plateau_info, progress_tracker, opacity_tracker, axes_color in zip(
-                plateau_data,
-                axis_progress_trackers,
-                axis_opacity_trackers,
-                ["#74C0F3", "#66ADD9", "#589BC4", "#4A88AF", "#3C769A"],
-            )
-        ]
-        self.play(
-            LaggedStart(
-                *[Create(axes) for axes in local_axes],
-                lag_ratio=0.22,
-            ),
-            run_time=2.2,
-            rate_func=smooth,
-        )
-
-        def fade_in_head(alpha, head_end=0.28):
-            if alpha >= head_end:
-                return 1
-            return smooth(alpha/head_end)
-
-        def fade_out_tail(alpha, tail_start=0.68):
-            if alpha <= tail_start:
-                return 0
-            return smooth((alpha-tail_start)/(1-tail_start))
-
-        def plateau_axes_animation(index, run_time=2.6):
-            def active_opacity(alpha):
-                fade_in = 1 if index == 0 else fade_in_head(alpha)
-                return (0.1+0.9*fade_in)*(1-fade_out_tail(alpha))
-
-            return AnimationGroup(
-                UpdateFromAlphaFunc(
-                    axis_progress_trackers[index],
-                    lambda tracker, alpha: tracker.set_value(alpha),
-                    run_time=run_time,
-                    rate_func=linear,
-                ),
-                UpdateFromAlphaFunc(
-                    axis_opacity_trackers[index],
-                    lambda tracker, alpha: tracker.set_value(active_opacity(alpha)),
-                    run_time=run_time,
-                    rate_func=linear,
-                ),
-                lag_ratio=0,
-            )
-
-        self.play(
-            Succession(
-                *[
-                    plateau_axes_animation(i)
-                    for i in range(len(local_axes))
-                ]
-            )
-        )
-
         self.wait(2)
 
 
@@ -3907,7 +3906,6 @@ class Drawingxp(MovingCameraScene):
 
 
 
-
 class Horizon(MovingCameraScene):
     def construct(self):
         # Plan for the scene, subchapters.
@@ -5093,6 +5091,7 @@ class LightconeLimit(MovingCameraScene):
 
 
 
+
 class TwinsTeaser(MovingCameraScene):
     def construct(self):
         self.camera.background_color = BGtry
@@ -5820,6 +5819,63 @@ class Flat2Curved(ThreeDScene):
     def point_sample_count(self, mob):
         return max(2, len(mob.get_all_points()))
 
+
+
+
+class HorizonDemonstration(MovingCameraScene):
+    def construct(self):
+
+        stars = VGroup()
+        for i in range(2500):
+            xs = np.random.uniform(-4,250)
+            ys = np.random.uniform(-10,10)
+            r = np.random.uniform(0.55,0.2)
+            stari = Dot(point=[xs,ys,0], radius=0.01, color=WHITE)
+            stars.add(stari)
+
+
+        rocket = ImageMobject("rocket.png").scale(0.15).move_to([-2,0,1])
+        earth = ImageMobject("earth.png").scale(0.2).move_to([-4,0,1])
+
+        
+
+        measures = VGroup()
+        for i in range(80):
+            linei = Line([i*6, -3.5, 0], [i*6, -1.2, 0], color=Vanilla, stroke_width=1.5).set_opacity(0.75)
+            measures.add(linei)
+
+        self.play(FadeIn(stars))
+        self.play(FadeIn(earth))
+        self.play(FadeIn(rocket))
+        self.play(FadeIn(measures))
+        self.wait()
+
+        def initial_velocity_quad(t):
+            return 0.45*t + 0.55*t**2
+
+  
+        self.play(AnimationGroup(
+                rocket.animate(run_time=8, rate_func=rate_functions.ease_out_quad).shift(RIGHT*8),
+                Succession(Wait(3),AnimationGroup(
+                self.camera.frame.animate(run_time=5).shift(RIGHT*2),
+                earth.animate(rate_func=initial_velocity_quad, run_time=25).stretch(0.15, dim=0),
+                stars.animate(rate_func=initial_velocity_quad, run_time=25).stretch(0.01,dim=0, about_point=(-4,0,0)),
+                measures.animate(rate_func=initial_velocity_quad, run_time=25).stretch(0.01,dim=0, about_point=(-4,0,0))
+                   ))
+                   ))
+
+        # self.play(self.camera.frame.animate(rate_func=initial_velocity_quad, run_time=35).shift(RIGHT*15),
+        #         AnimationGroup(rocket.animate(rate_func=initial_velocity_quad, run_time=35).shift(RIGHT*15),
+        #                        earth.animate(rate_func=initial_velocity_quad, run_time=35).shift(RIGHT*15).stretch(0.6, dim=0),
+        #         stars.animate(rate_func=initial_velocity_quad, run_time=35).stretch(0.52,dim=0).shift(RIGHT*15)))
+
+        # self.play(earth.animate(rate_func=initial_velocity_quad, run_time=35).stretch(0.6, dim=0),
+        #            stars.animate(rate_func=initial_velocity_quad, run_time=35).stretch(0.2,dim=0, about_point=(-6,0,0)))
+
+        # self.play(earth.animate(rate_func=rate_functions.ease_in_quad, run_time=35).stretch(0.6, dim=0),
+        #                    stars.animate(rate_func=rate_functions.ease_in_quad, run_time=35).stretch(0.2,dim=0, about_point=(-6,0,0)))
+        
+        self.wait(5)
 
 
 
