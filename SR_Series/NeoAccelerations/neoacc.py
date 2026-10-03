@@ -4323,6 +4323,318 @@ class Horizon(MovingCameraScene):
 
 
 
+class HorizonClocks(MovingCameraScene):
+    def construct(self):
+        # Plan for the scene, subchapters.
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
+
+
+        ############################################### Initializing ########################################################
+        #################### Set up axes
+        self.camera.background_color = BGtry
+        ax = Axes(x_range=[0,10,1], y_range=[0,10,1], 
+        x_length=8, y_length=8,axis_config={"include_ticks": False, "stroke_width":3.5}).set_color(gndcolor1)
+        self.camera.frame.scale(1.24).shift(DOWN*0.1)
+        og = ORIGIN
+        OG = ORIGIN
+
+
+        xlabel = MathTex("x").move_to(ax.x_axis.get_end()).shift(UP*0.5).set_color(gndcolor1)
+        tlabel = MathTex("t").move_to(ax.y_axis.get_end()).shift(RIGHT*0.35+UP*0.1).set_color(gndcolor1)
+
+        xct = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor).set_opacity(0.5)
+        xct0 = DashedLine(start=ax.c2p(0,0), end=ax.c2p(10-0.2,10-0.2)).set_color(lightcolor)
+        xhat = np.array([Dot(ax.c2p(1,0)).get_x() - Dot(ax.c2p(0,0)).get_x(),0,0])
+        that = np.array([0, Dot(ax.c2p(0,1)).get_y() - Dot(ax.c2p(0,0)).get_y(),0])
+
+        self.play(Create(ax), Write(xlabel), Write(tlabel), run_time=1)
+        grids = homemade_grid(ax, [0,10], [0,10], gndcolor1, opacitychoice=0.25)
+        self.play(Create(grids))
+        #################### Set up hyperbola, draw worldline
+        hypx0 = 4.5
+        hypxf = 8
+        center=-4.5
+        def hyperbola(x, x0=hypx0, center=center):
+            return np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def nhyperbola(x, x0=hypx0, center=center):
+            return -np.sqrt((x-center)**2 - (x0)**2)
+        
+
+        def hyperbolapiece(x1, x2, opacity=1, x0=hypx0, center=center):
+            wlpiece = ax.plot(lambda x: hyperbola(x), x_range=[x1, x2, 0.01],use_smoothing=False, stroke_width=5).set_color(phighlight2)
+            return wlpiece
+        
+        def hyperbolapieceT(t1, t2, opacity=0, x0=hypx0):
+            #t^2 = sqrt(x^2 - x0^2)
+            x1 = np.sqrt(t1**2 +x0**2)
+            x2 = np.sqrt(t2**2 +x0**2)
+
+            wlpiece = ax.plot(lambda x: np.sqrt(x**2 - x0**2), x_range=[x1, x2, 0.01], stroke_width=8).set_opacity(opacity).set_color(SchoolBus)
+            return wlpiece
+        
+        P = Dot(ax.c2p(center, 0, 0))
+        def getxprime(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            xp = Arrow(hyp_point, hyp_point+xphat*3, buff=0)
+
+            return xp
+        
+        
+        
+        def gettprime(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            tphat = np.array([xphat[1], xphat[0], 0])
+            tp = Arrow(hyp_point, hyp_point+tphat*3, buff=0)
+
+            return tp
+
+        worldline = ax.plot(lambda x: hyperbola(x), x_range=[hypx0+center,hypxf,0.01], stroke_width=4.5).set_color(gndcolor2)
+
+        def get_hypaxesx(x, x0=hypx0, length=1.2):
+            pt1 = hyperbola(x-0.01)
+            pt2 = hyperbola(x+0.01)
+            
+            slope = (pt2-pt1)/0.02
+
+            frameline = Line(OG, ax.c2p(length*2, length*slope*2)).set_color(LightBlue)
+            frameline.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            frameline.shift(frameline.get_center() - frameline.get_start())
+            tpdir = np.array([1, 1*slope, 0])/np.linalg.norm(np.array([1, 1*slope, 0]))
+            xpdir = np.array([1*slope, 1, 0])/np.linalg.norm(np.array([1*slope, 1, 0]))
+
+            xpaxis = Line(OG, OG+xpdir*frameline.get_length()).set_color(LightBlue)
+
+            xpaxis.move_to(ax.c2p(x, hyperbola(x))).scale(length*2/frameline.get_length())
+            xpaxis.shift(xpaxis.get_center() - xpaxis.get_start())
+
+            lightline = DashedLine(ax.c2p(x, hyperbola(x)), ax.c2p(x+length*2, hyperbola(x)+length*2)).set_color(lightcolor)
+
+            return xpaxis
+
+
+        ############################################ Scenes ###############################################
+        # 1 - Hyperbolic worldline, show dx and dts to clarify.
+        # 2 - Draw tangent line at a single point, that's the same as the cameraman catching it
+        # 3 - Draw many of these tangent lines, that's the other cameramen catching it at different points
+        # 4 - Argue that these lines are the t' axis, since the acc is at rest in their own frame
+        # 5 - Draw the x' axis using t', light ray, and symmetry.
+        # 6 - The x' axis is made up of all points that are "now" to the observer.
+        # 7 - Show that the axes scissors in as the accelerator gets faster, by drawing it at different points on the worldline.
+
+        ############## Chapter 1: The hyperbolic worldline
+        print(type(rate_functions))
+
+        expanded_t_axis = DoubleArrow(
+                    ax.c2p(0, -2),
+                    ax.c2p(0, 10),
+                    buff=0,
+                    stroke_width=3.5,
+                    max_tip_length_to_length_ratio=0.035,
+                ).set_color(gndcolor1)
+        expanded_x_axis = DoubleArrow(
+            ax.c2p(-6, 0),
+            ax.c2p(10, 0),
+            buff=0,
+            stroke_width=3.5,
+            max_tip_length_to_length_ratio=0.045,
+        ).set_color(gndcolor1)
+
+        negative_worldline = ax.plot(
+            lambda x: nhyperbola(x),
+            x_range=[hypx0+center, hypxf, 0.01],
+            stroke_width=4.5,
+        ).set_color(gndcolor2)
+
+        negative_t_grids = homemade_grid(ax, [0, 10], [-2, 0], gndcolor1, opacitychoice=0.25)
+        negative_x_grids = homemade_grid(ax, [-6, 0], [-2, 10], gndcolor1, opacitychoice=0.25)
+
+        self.play(Create(worldline), run_time=1.2)
+                
+
+        self.play(
+            # self.camera.frame.animate.scale(1.75).move_to(ax.c2p(3.0, 0)),
+            # Transform(ax.x_axis, expanded_x_axis),
+            # Transform(ax.y_axis, expanded_t_axis),
+            # ax.x_axis.animate.opacity(0),
+            # ax.y_axis.animate.opacity(0),
+            FadeIn(expanded_x_axis),
+            FadeIn(expanded_t_axis),
+            Create(negative_t_grids),
+            Create(negative_x_grids),
+            run_time=1.8,
+            rate_func=smooth,
+        )
+        self.wait(5)
+        
+        x0 = hypx0+center
+
+        
+        ############## Chapter 2: Tangent line as the cameraman
+
+        tangent_length = 3.2
+
+        def get_tgline(x):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+
+            # Normalize in scene space so every tangent has exactly the same
+            # visible length, independent of its slope.
+            tangent_direction = ax.c2p(x+1, y0+slope, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            half_length = tangent_length/2
+            tgline0 = Line(
+                tangent_point-tangent_direction*half_length,
+                tangent_point+tangent_direction*half_length,
+                stroke_width=5,
+                color=LemonOrange,
+            )
+            tgdot = Dot(tangent_point, radius=0.055).set_color(Vanilla)
+
+            return [tgdot, tgline0]
+        
+
+        def getxprimeline(x, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+        
+        def getxprimelineext(x, i, P_point=P):
+            y0 = hyperbola(x)
+            slope = (x-center)/y0
+            tangent_point = ax.c2p(x, y0, 0)
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            tangent_direction = ax.c2p(x+slope, y0+1, 0) - tangent_point
+            tangent_direction /= np.linalg.norm(tangent_direction)
+            xphat = tangent_direction
+            half_length = tangent_length/2
+            mult = 5.5
+        
+            xp = Line(hyp_point-xphat*mult, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+            if i > 10:
+                 xp = Line(P_point.get_center(), 
+                           hyp_point+xphat*half_length, stroke_width=5,
+                                color=NewOrange2, buff=0)
+
+
+            return xp
+        
+
+        def getxprimeline2(x, P_point=P):
+            hyp_point = ax.c2p(x, hyperbola(x))
+            intline = Line(P_point, hyp_point)
+            xphat = intline.get_unit_vector()
+            half_length = tangent_length/2
+            xp = Line(hyp_point-xphat*half_length, 
+                      hyp_point+xphat*half_length, stroke_width=5,
+                color=NewOrange2, buff=0)
+
+            return xp
+
+
+        def get_tprime_axis(x):
+            tangent_point = ax.c2p(x, hyperbola(x), 0)
+            tangent_direction = get_tgline(x)[1].get_unit_vector()
+            tprime_axis_length = 2.3
+            return Arrow(
+                tangent_point,
+                tangent_point+tangent_direction*tprime_axis_length,
+                buff=0,
+                stroke_width=5,
+                color=LightBlue,
+                tip_length=0.16,
+                max_tip_length_to_length_ratio=0.10,
+            )
+
+        def spring(t):
+            """Damped overshoot ending exactly at the target mobject."""
+            return 1-np.exp(-6*t)*np.cos(4.5*np.pi*t)
+        
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+
+        # Add two closely spaced samples before the old starting point and three
+        # more samples farther along the flatter, upper part of the hyperbola.
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+
+        acc1 = Dot(worldline.get_start())
+        self.play(Create(acc1))
+        original_tgxs = np.geomspace(0.3, 4.5, 14)
+        tgxs = np.concatenate((
+            [0, 0.08, 0.15, 0.22],
+            original_tgxs,
+            [5.3, 6.0, 6.7],
+        ))
+
+
+        self.camera.frame.save_state()
+        self.play(
+            self.camera.frame.animate()
+            .scale(0.7).move_to(acc1.get_center()).shift(UP+RIGHT))
+        # tglines = VGroup()
+        xplines = VGroup()
+        for i in range(len(tgxs)-1):
+
+            xi = tgxs[i+1]
+            if i == 11:
+                self.play(Restore(self.camera.frame))
+            
+            self.play(
+                MoveAlongPath(acc1, hyperbolapiece(tgxs[i], xi)),
+                run_time=0.5,
+                rate_func=linear,
+            )
+            
+            # tglinei = get_tgline(xi)[1]
+            xplinei = getxprimelineext(xi, i)
+            # self.play(Create(tglinei), run_time=0.18)
+            self.play(Create(xplinei), run_time=0.18)
+            self.wait(0.3)
+            self.play(
+                # tglinei.animate.set_stroke(width=3, opacity=0.35),
+                xplinei.animate.set_stroke(width=3, opacity=0.35),
+                run_time=0.12,
+            )
+            xplines.add(xplinei)
+            # tglines.add(tglinei)
+        self.wait(5)
+
+
+
 # 80%
 class OverlapProblem1(MovingCameraScene):
     def construct(self):
@@ -5818,7 +6130,6 @@ class Flat2Curved(ThreeDScene):
 
     def point_sample_count(self, mob):
         return max(2, len(mob.get_all_points()))
-
 
 
 
